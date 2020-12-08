@@ -60,12 +60,17 @@ private:
 	const int ROTATION_MIN = 20, ROTATION_RANGE = 35;
 
 	GLuint positionBufferObject;
-	GLuint colourObject;
+	GLuint colourBufferObject;
 	GLuint normalsBufferObject;
+	GLuint elementbuffer;
 
 	GLuint attribute_v_coord;
 	GLuint attribute_v_normal;
 	GLuint attribute_v_colours;
+
+	int numVertices;
+
+	vector<int> fanStarts, fanSizes, stripStarts, stripSizes;
 
 	Cylinder cylinder;
 

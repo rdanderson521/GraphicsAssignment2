@@ -238,7 +238,7 @@ void init(GLWrapper* glw)
 	motorStator.makeTube(40, 0.85);
 	motorShaft.makeTube(40, 0.7);
 	cube.makeCube();
-	tree.generate("F[[-F]F[+F]]",4);
+	tree.generate("F[[-F]F[+F]]",6);
 
 	// print instructions
 	cout << endl <<
@@ -306,8 +306,6 @@ void render(mat4& view, GLuint renderModelID)
 	stack<mat4> model;
 	model.push(mat4(1.0f));
 
-
-
 	// This block of code draws the drone
 	model.push(model.top());
 	{
@@ -364,11 +362,10 @@ void render(mat4& view, GLuint renderModelID)
 			}
 		}
 
-
 		model.push(model.top());
 		{
 
-			model.top() = translate(model.top(), vec3(0.f, 1.0f, 0.f));
+			//model.top() = translate(model.top(), vec3(0.f, 1.0f, 0.f));
 
 			// set the reflectiveness uniform
 			glUniform1f(reflectivenessID, frameReflect);
@@ -384,9 +381,6 @@ void render(mat4& view, GLuint renderModelID)
 			//cylinder.drawCylinder(drawmode);
 		}
 		model.pop();
-
-
-		//tree.render(model, view, renderModelID, normalMatrixID);
 
 		// frame top and bottom plates
 		model.push(model.top());

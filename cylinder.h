@@ -15,7 +15,7 @@ public:
 		normals = nullptr;
 		indecies = nullptr;
 		numVertices = 0;
-		numIndicies = 0;
+		numIndices = 0;
 		topStart = 0;
 		topSize = 0;
 		bottomStart = 0;
@@ -39,7 +39,7 @@ public:
 	GLfloat* normals;
 	GLuint* indecies;
 	int numVertices;
-	int numIndicies;
+	int numIndices;
 	int topStart, topSize, bottomStart, bottomSize, outsideStart, outsideSize;
 };
 

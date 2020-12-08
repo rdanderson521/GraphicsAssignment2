@@ -202,12 +202,13 @@ CylinderAttribArrays* Cylinder::getCylinderAttribs(GLuint numSegments, float top
 	}
 
 	a->indecies = pindices;
+	a->numIndices = numindices;
 
 	a->topStart = 0;
 	a->topSize = this->numSegments + 2;
 
 	a->bottomStart = this->numSegments + 2;
-	a->topSize = this->numSegments + 2;
+	a->bottomSize = this->numSegments + 2;
 
 	a->outsideStart = 2 * (this->numSegments + 2);
 	a->outsideSize = this->numSegments * 2 + 2;
@@ -218,7 +219,7 @@ CylinderAttribArrays* Cylinder::getCylinderAttribs(GLuint numSegments, float top
 
 void Cylinder::drawCylinder(int drawmode)
 {
-	GLuint i;
+	//GLuint i;
 
 	/* Draw the vertices as GL_POINTS */
 	glBindBuffer(GL_ARRAY_BUFFER, this->cylinderBufferObject);
@@ -306,11 +307,5 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices)
 			pVertices[vertexIdx + 1] = pVertices[previousVertexIdx + 1];
 			pVertices[vertexIdx + 2] = pVertices[previousVertexIdx + 2];
 		}
-	}
-
-
-	for (int i = 0; i < this->numCylinderVertices; i++)
-	{
-		std::cout << pVertices[(i * 3) + 0] << " " << pVertices[(i * 3) + 1] << " " << pVertices[(i * 3) + 2] << std::endl;
 	}
 }
