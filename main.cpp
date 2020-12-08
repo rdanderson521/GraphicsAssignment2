@@ -25,6 +25,8 @@ if you prefer */
 #include "sphere.h"
 #include "cubev2.h"
 #include "tube.h"
+#include "tree.h"
+#include "cylinder.h"
 
 /* Define buffer object indices */
 GLuint elementbuffer;
@@ -86,6 +88,8 @@ Tube tube;
 Tube motorBell, motorStator, motorShaft;
 Cubev2 cube;
 Sphere sphere;
+Tree tree;
+Cylinder cylinder;
 
 using namespace std;
 using namespace glm;
@@ -229,10 +233,12 @@ void init(GLWrapper* glw)
 
 	sphere.makeSphere(20, 20);
 	tube.makeTube(15, 0.1);
+	cylinder.makeCylinder(15);
 	motorBell.makeTube(40, 0.1);
 	motorStator.makeTube(40, 0.85);
 	motorShaft.makeTube(40, 0.7);
 	cube.makeCube();
+	tree.generate("F[[-F]F[+F]]",4);
 
 	// print instructions
 	cout << endl <<
@@ -299,6 +305,8 @@ void render(mat4& view, GLuint renderModelID)
 	stack<mat4> model;
 	model.push(mat4(1.0f));
 
+
+
 	// This block of code draws the drone
 	model.push(model.top());
 	{
@@ -355,6 +363,28 @@ void render(mat4& view, GLuint renderModelID)
 			}
 		}
 
+
+		model.push(model.top());
+		{
+
+			model.top() = translate(model.top(), vec3(0.f, 1.0f, 0.f));
+
+			// set the reflectiveness uniform
+			glUniform1f(reflectivenessID, frameReflect);
+			// set the colour uniform
+			glUniform4fv(colourOverrideID, 1, &frameColour[0]);
+			// Send the model uniform and normal matrix to the currently bound shader,
+			glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
+			// Recalculate the normal matrix and send to the vertex shader
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+
+		//tree.render(model, view, renderModelID, normalMatrixID);
 
 		// frame top and bottom plates
 		model.push(model.top());
