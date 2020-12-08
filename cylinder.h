@@ -5,13 +5,42 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-struct CylinderAttribArrays
+class CylinderAttribArrays
 {
-	GLfloat vertices;
-	GLfloat normals;
-	GLfloat indecies;
+public:
+
+	CylinderAttribArrays()
+	{
+		vertices = nullptr;
+		normals = nullptr;
+		indecies = nullptr;
+		numVertices = 0;
+		numIndicies = 0;
+		topStart = 0;
+		topSize = 0;
+		bottomStart = 0;
+		bottomSize = 0;
+		outsideStart = 0;
+		outsideSize = 0;
+	}
+
+	~CylinderAttribArrays()
+	{
+		if (vertices != nullptr)
+			delete vertices;
+		if (normals != nullptr)
+			delete normals;
+		if (indecies != nullptr)
+			delete indecies;
+	}
+
+
+	GLfloat* vertices;
+	GLfloat* normals;
+	GLuint* indecies;
 	int numVertices;
 	int numIndicies;
+	int topStart, topSize, bottomStart, bottomSize, outsideStart, outsideSize;
 };
 
 class Cylinder
@@ -20,8 +49,8 @@ public:
 	Cylinder();
 	~Cylinder();
 
-	void makeCylinder(GLuint numSegments);
-	static CylinderAttribArrays* getCylinderAttribs(GLuint numSegments);
+	void makeCylinder(GLuint numSegments, float topSize = 1.f);
+	CylinderAttribArrays* getCylinderAttribs(GLuint numSegments, float topSize = 1.f);
 	void drawCylinder(int drawmode);
 
 	// Define vertex buffer object names (e.g as globals)
@@ -36,6 +65,7 @@ public:
 
 	int numCylinderVertices;
 	int numSegments;
+	float topSize;
 
 private:
 	void makeUnitCylinder(GLfloat* pVertices);

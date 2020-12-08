@@ -15,13 +15,14 @@ Cylinder::Cylinder()
 Cylinder::~Cylinder()
 {}
 
-void Cylinder::makeCylinder(GLuint numSegments)
+void Cylinder::makeCylinder(GLuint numSegments, float topSize)
 {
-	GLuint numvertices = (numSegments * 2) + 2;
+	GLuint numvertices = (numSegments * 4) + 2;
 
 	// Store the number of cylinder vertices in an attribute because we need it later when drawing it
 	this->numCylinderVertices = numvertices;
 	this->numSegments = numSegments;
+	this->topSize = topSize;
 
 	// Create the temporary arrays to store vertex info
 	GLfloat* pVertices = new GLfloat[numvertices * 3];
@@ -38,19 +39,28 @@ void Cylinder::makeCylinder(GLuint numSegments)
 	}
 
 	// sets normals for top and bottom disks
-	for (int i = 0; i < numvertices / 2; i++)
+	for (int i = 0; i < (this->numSegments + 1) * 2; i++)
 	{
 		pNormals[i * 3] = 0;
-		pNormals[(i * 3) + 1] = 0;
-		pNormals[(i * 3) + 2] = pVertices[(i * 3) + 2];
+		pNormals[(i * 3) + 1] = pVertices[(i * 3) + 1];
+		pNormals[(i * 3) + 2] = 0;
 	}
 
 	// sets normals for curved surface
-	for (int i = numvertices / 2; i < numvertices; i++)
+	for (int i = (this->numSegments + 1) * 2; i < numvertices; i++)
 	{
 		pNormals[i * 3] = pVertices[(i * 3)];
 		pNormals[(i * 3) + 1] = pVertices[(i * 3) + 1];
-		pNormals[(i * 3) + 2] = 0;
+		float topBottomSizeDiff = 0.5f * (1.f - this->topSize);
+		if (topBottomSizeDiff != 0)
+		{
+			pNormals[(i * 3) + 2] = sin(atan(1.f / topBottomSizeDiff));
+		}
+		else
+		{
+			pNormals[(i * 3) + 2] = 0;
+		}
+		
 	}
 
 
@@ -73,27 +83,30 @@ void Cylinder::makeCylinder(GLuint numSegments)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// 1 repeating vertex for each fan, 2 for the triangle strip around the outside
-	GLuint numindices = (numvertices * 2) + 2;
+	GLuint numindices = (numvertices ) + 4;
 	GLuint* pindices = new GLuint[numindices];
 
 	int currentIndex = 0;
+	int verticesPerDisk = this->numSegments + 1;
+	int indicesPerDisk = this->numSegments + 2;
+
 	// create top and bottom fan indices
 	for (int i = 0; i < 2; i++)
 	{
 		// center vertex
-		pindices[(this->numSegments + 2) * i] = (this->numSegments + 1) * i;
+		pindices[indicesPerDisk * i] = verticesPerDisk * i;
 
 		for (int j = 0; j <= this->numSegments; j++)
 		{
-			pindices[((this->numSegments + 2) * i) + j + 1] = ((this->numSegments + 1) * i) + (j % this->numSegments) + 1;
+			pindices[(indicesPerDisk * i) + j + 1] = (verticesPerDisk * i) + (j % this->numSegments) + 1;
 		}
 	}
 
 	// create the indices for the outside triangle strip
 	for (int i = 0; i <= this->numSegments; i++)
 	{
-		pindices[((this->numSegments + 2) * 2) + (i * 2)] = (i % this->numSegments) + 1;
-		pindices[((this->numSegments + 2) * 2) + (i * 2) + 1] = (this->numSegments + 1) + (i % this->numSegments) + 1;
+		pindices[(indicesPerDisk * 2) + (i * 2)] = (verticesPerDisk * 2) + (i % this->numSegments);
+		pindices[(indicesPerDisk * 2) + (i * 2) + 1] = (verticesPerDisk * 2) + this->numSegments + (i % this->numSegments);
 	}
 
 	for (int i = 0; i < numindices; i++)
@@ -114,9 +127,91 @@ void Cylinder::makeCylinder(GLuint numSegments)
 	delete[] pVertices;
 }
 
-CylinderAttribArrays* Cylinder::getCylinderAttribs(GLuint numSegments)
+CylinderAttribArrays* Cylinder::getCylinderAttribs(GLuint numSegments, float topSize)
 {
 	CylinderAttribArrays* a = new CylinderAttribArrays;
+
+	GLuint numvertices = (numSegments * 4) + 2;
+
+	// Store the number of cylinder vertices in an attribute because we need it later when drawing it
+	this->numCylinderVertices = numvertices;
+	this->numSegments = numSegments;
+	this->topSize = topSize;
+
+	// Create the temporary arrays to store vertex info
+	GLfloat* pVertices = new GLfloat[numvertices * 3];
+	GLfloat* pNormals = new GLfloat[numvertices * 3];
+
+	this->makeUnitCylinder(pVertices);
+	a->vertices = pVertices;
+	a->numVertices = numvertices;
+
+	// sets normals for top and bottom disks
+	for (int i = 0; i < (this->numSegments + 1) * 2; i++)
+	{
+		pNormals[i * 3] = 0;
+		pNormals[(i * 3) + 1] = pVertices[(i * 3) + 1];
+		pNormals[(i * 3) + 2] = 0;
+	}
+
+	// sets normals for curved surface
+	for (int i = (this->numSegments + 1) * 2; i < numvertices; i++)
+	{
+		pNormals[i * 3] = pVertices[(i * 3)];
+		pNormals[(i * 3) + 1] = pVertices[(i * 3) + 1];
+		float topBottomSizeDiff = 0.5f * (1.f - this->topSize);
+		if (topBottomSizeDiff != 0)
+		{
+			pNormals[(i * 3) + 2] = sin(atan(1.f / topBottomSizeDiff));
+		}
+		else
+		{
+			pNormals[(i * 3) + 2] = 0;
+		}
+
+	}
+
+	a->normals = pNormals;
+
+
+	// 1 repeating vertex for each fan, 2 for the triangle strip around the outside
+	GLuint numindices = (numvertices)+4;
+	GLuint* pindices = new GLuint[numindices];
+
+	int currentIndex = 0;
+	int verticesPerDisk = this->numSegments + 1;
+	int indicesPerDisk = this->numSegments + 2;
+
+	// create top and bottom fan indices
+	for (int i = 0; i < 2; i++)
+	{
+		// center vertex
+		pindices[indicesPerDisk * i] = verticesPerDisk * i;
+
+		for (int j = 0; j <= this->numSegments; j++)
+		{
+			pindices[(indicesPerDisk * i) + j + 1] = (verticesPerDisk * i) + (j % this->numSegments) + 1;
+		}
+	}
+
+	// create the indices for the outside triangle strip
+	for (int i = 0; i <= this->numSegments; i++)
+	{
+		pindices[(indicesPerDisk * 2) + (i * 2)] = (verticesPerDisk * 2) + (i % this->numSegments);
+		pindices[(indicesPerDisk * 2) + (i * 2) + 1] = (verticesPerDisk * 2) + this->numSegments + (i % this->numSegments);
+	}
+
+	a->indecies = pindices;
+
+	a->topStart = 0;
+	a->topSize = this->numSegments + 2;
+
+	a->bottomStart = this->numSegments + 2;
+	a->topSize = this->numSegments + 2;
+
+	a->outsideStart = 2 * (this->numSegments + 2);
+	a->outsideSize = this->numSegments * 2 + 2;
+
 	return a;
 }
 
@@ -158,10 +253,10 @@ void Cylinder::drawCylinder(int drawmode)
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
 
 
+		
 		glDrawElements(GL_TRIANGLE_FAN, this->numSegments + 2, GL_UNSIGNED_INT, (GLvoid*)(0));
-		glDrawElements(GL_TRIANGLE_FAN, this->numSegments + 2, GL_UNSIGNED_INT, (GLvoid*)((this->numSegments + 2)*4));
-
-		glDrawElements(GL_TRIANGLE_STRIP, this->numSegments * 2 + 2, GL_UNSIGNED_INT, (GLvoid*)(2*(this->numSegments + 2) * 4));
+		glDrawElements(GL_TRIANGLE_FAN, this->numSegments + 2, GL_UNSIGNED_INT, (GLvoid*)((this->numSegments + 2)*4)); // *4 needed for pointer because GLuint is 4 bytes
+		glDrawElements(GL_TRIANGLE_STRIP, this->numSegments * 2 + 2, GL_UNSIGNED_INT, (GLvoid*)(2*(this->numSegments + 2) * 4)); // *4 needed for pointer because GLuint is 4 bytes
 	}
 }
 
@@ -170,7 +265,7 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices)
 {
 	float segmentAngleIncrement = (2 * PI) / this->numSegments;
 
-	int numVerticesPerSection = this->numCylinderVertices / 2;
+	int numVerticesPerDisk = this->numSegments + 1;
 
 
 	// centre point
@@ -179,47 +274,43 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices)
 	pVertices[2] = 0.f;
 
 	// top disk
-	for (int i = 1; i < numVerticesPerSection; i++)
+	for (int i = 1; i < numVerticesPerDisk; i++)
 	{
-		pVertices[i * 3] = 0.5f * sin(segmentAngleIncrement * i);
+		pVertices[i * 3] = this->topSize * 0.5f * sin(segmentAngleIncrement * i);
 		pVertices[(i * 3) + 1] = 0.5 ;
-		pVertices[(i * 3) + 2] = 0.5f * cos(segmentAngleIncrement * i);
-
+		pVertices[(i * 3) + 2] = this->topSize * 0.5f * cos(segmentAngleIncrement * i);
 	}
 
 	// centre point
-	pVertices[0 + (numVerticesPerSection * 3)] = 0.f;
-	pVertices[1 + (numVerticesPerSection * 3)] = -0.5f;
-	pVertices[2 + (numVerticesPerSection * 3)] = 0.f;
+	pVertices[0 + (numVerticesPerDisk * 3)] = 0.f;
+	pVertices[1 + (numVerticesPerDisk * 3)] = -0.5f;
+	pVertices[2 + (numVerticesPerDisk * 3)] = 0.f;
 
 	// top disk
-	for (int i = 1; i < numVerticesPerSection; i++)
+	for (int i = 1; i < numVerticesPerDisk; i++)
 	{
-		pVertices[(i * 3) + (numVerticesPerSection * 3)] = 0.5f * sin(segmentAngleIncrement * i);
-		pVertices[(i * 3) + 1 + (numVerticesPerSection * 3)] = -0.5;
-		pVertices[(i * 3) + 2 + (numVerticesPerSection * 3)] = 0.5f * cos(segmentAngleIncrement * i);
+		pVertices[(i * 3) + (numVerticesPerDisk * 3)] = 0.5f * sin(segmentAngleIncrement * i);
+		pVertices[(i * 3) + 1 + (numVerticesPerDisk * 3)] = -0.5;
+		pVertices[(i * 3) + 2 + (numVerticesPerDisk * 3)] = 0.5f * cos(segmentAngleIncrement * i);
 
 	}
+
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < this->numSegments; j++)
+		{
+			int vertexIdx = (j * 3) + (this->numSegments * i * 3) + (numVerticesPerDisk * 2 * 3);
+			int previousVertexIdx = (numVerticesPerDisk * 3 * i) + ((j + 1) * 3);
+
+			pVertices[vertexIdx] = pVertices[previousVertexIdx];
+			pVertices[vertexIdx + 1] = pVertices[previousVertexIdx + 1];
+			pVertices[vertexIdx + 2] = pVertices[previousVertexIdx + 2];
+		}
+	}
+
 
 	for (int i = 0; i < this->numCylinderVertices; i++)
 	{
 		std::cout << pVertices[(i * 3) + 0] << " " << pVertices[(i * 3) + 1] << " " << pVertices[(i * 3) + 2] << std::endl;
 	}
-
-
-	// 
-	//for (int i = 0; i < numVerticesPerSection * 3; i++)
-	//{
-	//	// outside vertices
-	//	if (i % 3 != 1)
-	//	{
-	//		// copies the x and y coordinates from the previous disk
-	//		pVertices[(numVerticesPerSection * 3) + i] = pVertices[i];
-	//	}
-	//	else
-	//	{
-	//		// sets the z coordinate to the negative of the previous disk
-	//		pVertices[(numVerticesPerSection * 3) + i] = -pVertices[i];
-	//	}
-	//}
 }

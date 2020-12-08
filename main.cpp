@@ -233,7 +233,7 @@ void init(GLWrapper* glw)
 
 	sphere.makeSphere(20, 20);
 	tube.makeTube(15, 0.1);
-	cylinder.makeCylinder(15);
+	cylinder.makeCylinder(4,1.f);
 	motorBell.makeTube(40, 0.1);
 	motorStator.makeTube(40, 0.85);
 	motorShaft.makeTube(40, 0.7);
@@ -290,6 +290,7 @@ void render(mat4& view, GLuint renderModelID)
 	vec3 groundPlaneScale = vec3(20.f, 0.0001f, 20.f);
 
 	vec4 frameColour = vec4(0.20f, 0.20f, 0.20f, 1.f);
+	vec4 treeColour = vec4(0.50f, 0.25f, 0.f, 1.f);
 	vec4 motorColour = vec4(0.60f, 0.60f, 0.60f, 1.f);
 	vec4 motorStatorColour = vec4(0.88f, 0.44f, 0.f, 1.f);
 	vec4 standoffColour = vec4(1.f, 0.f, 0.f, 1.f);
@@ -372,14 +373,15 @@ void render(mat4& view, GLuint renderModelID)
 			// set the reflectiveness uniform
 			glUniform1f(reflectivenessID, frameReflect);
 			// set the colour uniform
-			glUniform4fv(colourOverrideID, 1, &frameColour[0]);
+			glUniform4fv(colourOverrideID, 1, &treeColour[0]);
 			// Send the model uniform and normal matrix to the currently bound shader,
 			glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
 			// Recalculate the normal matrix and send to the vertex shader
 			normalmatrix = transpose(inverse(mat3(view * model.top())));
 			glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
 
-			cylinder.drawCylinder(drawmode);
+			tree.render(model, view, renderModelID, normalMatrixID);
+			//cylinder.drawCylinder(drawmode);
 		}
 		model.pop();
 
@@ -1080,6 +1082,11 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 		controlMode = 3; // fly mode
 		modeChanged = true;
 	}
+	if (key == 'G')
+	{
+		tree.generate("F[[-F]F[+F]]", 4);
+	}
+	
 
 	if (modeChanged)
 	{

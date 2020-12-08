@@ -1,8 +1,9 @@
 #include "tree.h"
 
 #include <iostream>
+#include <ctime>
 
-#include "cubev2.h"
+#include "cylinder.h"
 
 
 Tree::Tree()
@@ -15,12 +16,14 @@ Tree::Tree()
 
 void Tree::generate(string rule, int levels)
 {
+	this->nodes.clear();
+	srand(time(NULL));
 	stack<mat4> transformations;
 	transformations.push(mat4(1.0f));
 
 	this->generateRecurse(rule, levels, transformations);
 
-	this->cube.makeCube();
+	this->cylinder.makeCylinder(15,this->BRANCH_SCALE);
 
 }
 
@@ -98,7 +101,7 @@ void Tree::render(stack<mat4>& model, mat4& view, GLuint renderModelID, GLuint n
 			// Recalculate the normal matrix and send to the vertex shader
 			mat3 normalmatrix = transpose(inverse(mat3(view * model.top())));
 			glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
-			this->cube.drawCube(0);
+			this->cylinder.drawCylinder(0);
 		}
 		model.pop();
 	}

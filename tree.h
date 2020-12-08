@@ -16,7 +16,7 @@
 
 #include "wrapper_glfw.h"
 
-#include "cubev2.h"
+#include "cylinder.h"
 
 
 /* Include GLM core and matrix extensions*/
@@ -57,7 +57,7 @@ private:
 
 	const float BRANCH_SCALE = 0.8;
 	const float BRANCH_WIDTH = 0.2, BRANCH_HEIGHT = 1;
-	const int ROTATION_MIN = 15, ROTATION_RANGE = 30;
+	const int ROTATION_MIN = 20, ROTATION_RANGE = 35;
 
 	GLuint positionBufferObject;
 	GLuint colourObject;
@@ -67,7 +67,7 @@ private:
 	GLuint attribute_v_normal;
 	GLuint attribute_v_colours;
 
-	Cubev2 cube;
+	Cylinder cylinder;
 
 	vector<TreeNode> nodes;
 
