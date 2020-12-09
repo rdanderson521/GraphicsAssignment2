@@ -13,6 +13,7 @@ public:
 	{
 		vertices = nullptr;
 		normals = nullptr;
+		textures = nullptr;
 		indecies = nullptr;
 		numVertices = 0;
 		numIndices = 0;
@@ -30,6 +31,8 @@ public:
 			delete vertices;
 		if (normals != nullptr)
 			delete normals;
+		if (textures != nullptr)
+			delete textures;
 		if (indecies != nullptr)
 			delete indecies;
 	}
@@ -37,6 +40,7 @@ public:
 
 	GLfloat* vertices;
 	GLfloat* normals;
+	GLfloat* textures;
 	GLuint* indecies;
 	int numVertices;
 	int numIndices;
@@ -57,6 +61,7 @@ public:
 	GLuint cylinderBufferObject;
 	GLuint cylinderNormals;
 	GLuint cylinderColours;
+	GLuint cylinderTextures;
 	GLuint elementbuffer;
 
 	GLuint attribute_v_coord;
@@ -68,7 +73,7 @@ public:
 	float topSize;
 
 private:
-	void makeUnitCylinder(GLfloat* pVertices);
+	void makeUnitCylinder(GLfloat* pVertices, GLfloat* pTextures);
 };
 
 

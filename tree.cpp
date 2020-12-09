@@ -12,11 +12,13 @@ Tree::Tree()
 	this->attribute_v_coord = 0;
 	this->attribute_v_colours = 1;
 	this->attribute_v_normal = 2;
+	this->attribute_v_tex = 3;
 }
 
 
 void Tree::generate(string rule, int levels)
 {
+
 	this->nodes.clear();
 	srand(time(NULL));
 	stack<mat4> transformations;
@@ -39,13 +41,12 @@ void Tree::generate(string rule, int levels)
 		indicesTemplate.push_back(cA->indecies[i]);
 	}
 
-
-
 	unsigned int totalVertices = cA->numVertices * this->nodes.size();
 	unsigned int totalIndices = cA->numIndices * this->nodes.size();
 	GLfloat* pVertices = new GLfloat[totalVertices * 3];
 	GLfloat* pNormals = new GLfloat[totalVertices * 3];
 	GLfloat* pColours = new GLfloat[totalVertices * 4];
+	GLfloat* pTextures = new GLfloat[totalVertices * 2];
 	GLuint* pIndices = new GLuint[totalIndices];
 
 	vec4 treeColour = vec4(0.5f, 0.25f, 0.f, 1.f);
@@ -61,6 +62,7 @@ void Tree::generate(string rule, int levels)
 		{
 			unsigned int currentVertex = (i * cA->numVertices * 3) + (j * 3);
 			unsigned int currentColour = (i * cA->numVertices * 4) + (j * 4);
+			unsigned int currentTexture = (i * cA->numVertices * 2) + (j * 2);
 
 			vec3 newVertex = transform * vec4(verticesTemplate.at(j), 1);
 			pVertices[currentVertex] = newVertex.x;
@@ -76,6 +78,9 @@ void Tree::generate(string rule, int levels)
 			pColours[currentColour + 1] = treeColour.g;
 			pColours[currentColour + 2] = treeColour.b;
 			pColours[currentColour + 3] = treeColour.a;
+
+			pTextures[currentTexture] = cA->textures[(j*2)];
+			pTextures[currentTexture + 1] = cA->textures[(j * 2) + 1];
 		}
 
 		for (size_t j = 0; j < cA->numIndices; j++)
@@ -91,9 +96,6 @@ void Tree::generate(string rule, int levels)
 		this->stripStarts.push_back(cA->outsideStart + (i * cA->numIndices));
 		this->stripSizes.push_back(cA->outsideSize);
 	}
-	//cylinder.makeCylinder(15, this->BRANCH_SCALE);
-
-
 
 	/* Generate the vertex buffer object */
 	glGenBuffers(1, &this->positionBufferObject);
@@ -111,6 +113,12 @@ void Tree::generate(string rule, int levels)
 	glGenBuffers(1, &this->colourBufferObject);
 	glBindBuffer(GL_ARRAY_BUFFER, this->colourBufferObject);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * totalVertices * 4, pColours, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	/* Store the texture coordinates in a buffer object */
+	glGenBuffers(1, &this->textureBufferObject);
+	glBindBuffer(GL_ARRAY_BUFFER, this->textureBufferObject);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * totalVertices * 2, pTextures, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// Generate a buffer for the indices
@@ -183,80 +191,51 @@ void Tree::generateRecurse(string rule, int levels, stack<mat4>& transformations
 
 void Tree::render(stack<mat4>& model, mat4& view, GLuint renderModelID, GLuint normalMatrixID)
 {
-	/*for (auto it = this->nodes.begin(); it != this->nodes.end(); it++)
+
+	/* Draw the vertices as GL_POINTS */
+	glBindBuffer(GL_ARRAY_BUFFER, this->positionBufferObject);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	/* Bind the  normals */
+	glBindBuffer(GL_ARRAY_BUFFER, this->normalsBufferObject);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glEnableVertexAttribArray(2);
+
+	/* Bind the colours */
+	glBindBuffer(GL_ARRAY_BUFFER, this->colourBufferObject);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+
+	/* Bind the colours */
+	glBindBuffer(GL_ARRAY_BUFFER, this->textureBufferObject);
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(3);
+
+	glPointSize(3.f);
+
+	int drawmode = 0;
+
+	// Enable this line to show model in wireframe
+	if (drawmode == 1)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	else
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	/* Bind the indexed vertex buffer */
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->elementbuffer);
+
+	for (int i = 0; i < this->stripStarts.size(); i++)
 	{
-		model.push(model.top());
-		{
-			model.top() = model.top() * it->transformation;
-			model.top() = scale(model.top(), vec3(this->BRANCH_WIDTH,this->BRANCH_HEIGHT, this->BRANCH_WIDTH));
-			model.top() = translate(model.top(), vec3(0, 0.5, 0));
 
-			// Send the model uniform and normal matrix to the currently bound shader,
-			glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
-			// Recalculate the normal matrix and send to the vertex shader
-			mat3 normalmatrix = transpose(inverse(mat3(view * model.top())));
-			glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
-			this->cylinder.drawCylinder(0);
-		}
-		model.pop();
-	}*/
-
-	model.push(model.top());
-	{
-		// Send the model uniform and normal matrix to the currently bound shader,
-		glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
-		// Recalculate the normal matrix and send to the vertex shader
-		mat3 normalmatrix = transpose(inverse(mat3(view * model.top())));
-		glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
-
-		/* Draw the vertices as GL_POINTS */
-		glBindBuffer(GL_ARRAY_BUFFER, this->positionBufferObject);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(0);
-
-		/* Bind the  normals */
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, this->normalsBufferObject);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		/* Bind the colours */
-		glBindBuffer(GL_ARRAY_BUFFER, this->colourBufferObject);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(1);
-
-		glPointSize(3.f);
-
-		int drawmode = 0;
-
-		// Enable this line to show model in wireframe
-		if (drawmode == 1)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		else
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		if (drawmode == 2)
-		{
-			//glDrawArrays(GL_POINTS, 0, this->numCylinderVertices);
-		}
-		else
-		{
-			/* Bind the indexed vertex buffer */
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->elementbuffer);
-
-			for (int i = 0; i < this->stripStarts.size(); i++)
-			{
-
-				glDrawElements(GL_TRIANGLE_STRIP, this->stripSizes.at(i), GL_UNSIGNED_INT, (GLvoid*)(this->stripStarts.at(i) * 4)); // *4 needed for pointer because GLuint is 4 bytes
-			}
-
-			//glDrawElements(GL_TRIANGLE_FAN, 15 + 2, GL_UNSIGNED_INT, (GLvoid*)(0));
-			//glDrawElements(GL_TRIANGLE_FAN, 15 + 2, GL_UNSIGNED_INT, (GLvoid*)((15 + 2) * 4)); // *4 needed for pointer because GLuint is 4 bytes
-			
-		}
-
-
-
+		glDrawElements(GL_TRIANGLE_STRIP, this->stripSizes.at(i), GL_UNSIGNED_INT, (GLvoid*)(this->stripStarts.at(i) * 4)); // *4 needed for pointer because GLuint is 4 bytes
 	}
-	model.pop();
+
+	for (int i = 0; i < this->fanStarts.size(); i++)
+	{
+
+		glDrawElements(GL_TRIANGLE_FAN, this->fanSizes.at(i), GL_UNSIGNED_INT, (GLvoid*)(this->fanStarts.at(i) * 4)); // *4 needed for pointer because GLuint is 4 bytes
+	}
+
 
 }

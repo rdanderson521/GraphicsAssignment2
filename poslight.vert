@@ -9,6 +9,7 @@
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec4 colour;
 layout(location = 2) in vec3 normal;
+layout(location = 3) in vec2 texCoord;
 
 // This is the output vertex colour sent to the rasterizer
 //out vec4 fcolour;
@@ -19,6 +20,7 @@ out VERTEX_OUT
 	vec3 normal;
 	vec4 vertexColour;
 	vec4 FragPosLightSpace;
+	vec2 texCoord;
 } vOut;
 
 
@@ -42,6 +44,7 @@ void main()
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
 	vOut.FragPosLightSpace = lightSpaceMatrix * vec4(vOut.pos,1.f);
+	vOut.texCoord = texCoord;
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);
 }

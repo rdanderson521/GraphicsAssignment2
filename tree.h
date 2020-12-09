@@ -30,16 +30,10 @@ using namespace glm;
 using namespace std;
 
 
-enum NodeType
-{
-	BRANCH,
-	LEAF
-};
 
 struct TreeNode
 {
 	mat4 transformation;
-	NodeType type;
 };
 
 
@@ -55,18 +49,21 @@ public:
 
 private:
 
-	const float BRANCH_SCALE = 0.8;
+	const float BRANCH_SCALE = 0.75;
 	const float BRANCH_WIDTH = 0.2, BRANCH_HEIGHT = 1;
-	const int ROTATION_MIN = 20, ROTATION_RANGE = 35;
+	const int ROTATION_MIN = 25, ROTATION_RANGE = 40;
 
 	GLuint positionBufferObject;
 	GLuint colourBufferObject;
 	GLuint normalsBufferObject;
+	GLuint textureBufferObject;
 	GLuint elementbuffer;
 
 	GLuint attribute_v_coord;
 	GLuint attribute_v_normal;
 	GLuint attribute_v_colours;
+	GLuint attribute_v_tex;
+
 
 	int numVertices;
 

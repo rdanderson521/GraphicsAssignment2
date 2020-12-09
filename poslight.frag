@@ -9,13 +9,21 @@ in VERTEX_OUT
 	vec3 normal;
 	vec4 vertexColour;
 	vec4 FragPosLightSpace;
+	vec2 texCoord;
 } fIn;
-
 
 out vec4 outputColor;
 
+
 uniform vec3 viewPos;
 uniform sampler2D shadowMap;
+
+uniform sampler2D tex;
+uniform bool useTex;
+
+uniform sampler2D normalMap;
+uniform bool useNormalMap;
+
 
 uniform mat4 model, view, projection;
 uniform mat3 normalMatrix;
@@ -53,7 +61,17 @@ float shadowCalculation(vec4 lightSpace)
 
 void main()
 {
-	vec3 emissive = vec3(0);
+	vec4 colour;
+	if (useTex)
+	{
+		colour = texture(tex, fIn.texCoord);
+	}
+	else
+	{
+		colour = fIn.vertexColour;
+	}
+
+	vec3 emissive = vec3(0); // emmissive light component
 	if (emitMode == 1)
 	{
 		if (emitColour != vec3(0.f))
@@ -64,9 +82,8 @@ void main()
 		{
 			emissive = vec3(1.0, 1.0, 0.8);
 		}
-	
 	}
-	outputColor =  vec4((global_ambient * fIn.vertexColour.xyz) + emissive , 1.f);
+	outputColor =  vec4((global_ambient * colour.xyz) + emissive , 1.f);
 	for (int i = 0; i < numLights; i++)
 	{
 		vec4 position_h = vec4(fIn.pos, 1.0);
@@ -78,7 +95,7 @@ void main()
 			currentLightColour = vec3(1.0f);
 		}
 
-		vec3 ambient = fIn.vertexColour.xyz  * 0.1 * (0.8 + (0.2*currentLightColour));
+		vec3 ambient = colour.xyz  * 0.1 * (0.8 + (0.2*currentLightColour));
 
 		// Define our vectors to calculate diffuse and specular lighting
 		mat4 mv_matrix = view * model;		// Calculate the model-view transformation
@@ -89,7 +106,7 @@ void main()
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N, L), 0.0) * fIn.vertexColour.xyz * (0.2 + (0.8*currentLightColour));
+		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (0.2 + (0.8*currentLightColour));
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	

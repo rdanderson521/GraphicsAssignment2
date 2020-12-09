@@ -28,6 +28,8 @@ if you prefer */
 #include "tree.h"
 #include "cylinder.h"
 
+#include "texture_loader.h"
+
 /* Define buffer object indices */
 GLuint elementbuffer;
 
@@ -69,6 +71,7 @@ GLuint modelID, viewID, projectionID, normalMatrixID, viewPosID;
 GLuint colourModeID, emitModeID, attenuationModeID;
 GLuint colourOverrideID, reflectivenessID, numLightsID;
 GLuint lightSpaceMatrixID, shadowMapID;
+GLuint textureID, useTextureID;
 
 const int maxNumLights = 10;
 GLuint lightPosID[maxNumLights];
@@ -90,6 +93,9 @@ Cubev2 cube;
 Sphere sphere;
 Tree tree;
 Cylinder cylinder;
+
+// texture IDs
+GLuint treeTexture;
 
 using namespace std;
 using namespace glm;
@@ -227,6 +233,9 @@ void init(GLWrapper* glw)
 	reflectivenessID = glGetUniformLocation(program, "reflectiveness");
 	lightSpaceMatrixID = glGetUniformLocation(program, "lightSpaceMatrix");
 	shadowMapID = glGetUniformLocation(program, "shadowMap");
+
+	textureID = glGetUniformLocation(program, "tex");
+	useTextureID = glGetUniformLocation(program, "useTex");
 	
 
 	/* create our sphere and cube objects */
@@ -238,7 +247,10 @@ void init(GLWrapper* glw)
 	motorStator.makeTube(40, 0.85);
 	motorShaft.makeTube(40, 0.7);
 	cube.makeCube();
-	tree.generate("F[[-F]F[+F]]",6);
+	tree.generate("F[[-F]F[+F]]",5);
+
+	treeTexture = loadTexture("textures/Bark_004_basecolor.jpg");
+	cout << "tree texture: " << treeTexture << endl;
 
 	// print instructions
 	cout << endl <<
@@ -377,8 +389,16 @@ void render(mat4& view, GLuint renderModelID)
 			normalmatrix = transpose(inverse(mat3(view * model.top())));
 			glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
 
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, treeTexture);
+			
+			glUniform1i(textureID, 0);
+
+			glUniform1i(useTextureID, 1);
+
 			tree.render(model, view, renderModelID, normalMatrixID);
 			//cylinder.drawCylinder(drawmode);
+			glUniform1i(useTextureID, 0);
 		}
 		model.pop();
 
@@ -959,9 +979,9 @@ void display()
 	glUniformMatrix4fv(projectionID, 1, GL_FALSE, &projection[0][0]);
 	glUniformMatrix4fv(lightSpaceMatrixID, 1, GL_FALSE, &lightSpace[0][0]);
 	
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glUniform1i(shadowMapID, 0);
+	glUniform1i(shadowMapID, 1);
 	
 	
 

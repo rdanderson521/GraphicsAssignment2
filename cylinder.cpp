@@ -27,8 +27,9 @@ void Cylinder::makeCylinder(GLuint numSegments, float topSize)
 	// Create the temporary arrays to store vertex info
 	GLfloat* pVertices = new GLfloat[numvertices * 3];
 	GLfloat* pNormals = new GLfloat[numvertices * 3];
+	GLfloat* pTextures = new GLfloat[numvertices * 2];
 	GLfloat* pColours = new GLfloat[numvertices * 4];
-	this->makeUnitCylinder(pVertices);
+	this->makeUnitCylinder(pVertices, pTextures);
 
 	for (int i = 0; i < numvertices; i++)
 	{
@@ -141,9 +142,12 @@ CylinderAttribArrays* Cylinder::getCylinderAttribs(GLuint numSegments, float top
 	// Create the temporary arrays to store vertex info
 	GLfloat* pVertices = new GLfloat[numvertices * 3];
 	GLfloat* pNormals = new GLfloat[numvertices * 3];
+	GLfloat* pTextures = new GLfloat[numvertices * 2];
 
-	this->makeUnitCylinder(pVertices);
+	this->makeUnitCylinder(pVertices, pTextures);
 	a->vertices = pVertices;
+	a->textures = pTextures;
+
 	a->numVertices = numvertices;
 
 	// sets normals for top and bottom disks
@@ -262,7 +266,7 @@ void Cylinder::drawCylinder(int drawmode)
 }
 
 
-void Cylinder::makeUnitCylinder(GLfloat* pVertices)
+void Cylinder::makeUnitCylinder(GLfloat* pVertices, GLfloat* pTextures)
 {
 	float segmentAngleIncrement = (2 * PI) / this->numSegments;
 
@@ -274,18 +278,27 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices)
 	pVertices[1] = 0.5f;
 	pVertices[2] = 0.f;
 
+	pTextures[0] = 0.f;
+	pTextures[1] = 0.f;
+
 	// top disk
 	for (int i = 1; i < numVerticesPerDisk; i++)
 	{
 		pVertices[i * 3] = this->topSize * 0.5f * sin(segmentAngleIncrement * i);
 		pVertices[(i * 3) + 1] = 0.5 ;
 		pVertices[(i * 3) + 2] = this->topSize * 0.5f * cos(segmentAngleIncrement * i);
+
+		pTextures[(i * 2)] = 0.f;
+		pTextures[(i * 2) + 1] = 0.f;
 	}
 
 	// centre point
 	pVertices[0 + (numVerticesPerDisk * 3)] = 0.f;
 	pVertices[1 + (numVerticesPerDisk * 3)] = -0.5f;
 	pVertices[2 + (numVerticesPerDisk * 3)] = 0.f;
+
+	pTextures[0 + (numVerticesPerDisk * 2)] = 0.f;
+	pTextures[1 + (numVerticesPerDisk * 2)] = 0.f;
 
 	// top disk
 	for (int i = 1; i < numVerticesPerDisk; i++)
@@ -294,6 +307,8 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices)
 		pVertices[(i * 3) + 1 + (numVerticesPerDisk * 3)] = -0.5;
 		pVertices[(i * 3) + 2 + (numVerticesPerDisk * 3)] = 0.5f * cos(segmentAngleIncrement * i);
 
+		pTextures[(i * 2) + (numVerticesPerDisk * 3)] = 0.f;
+		pTextures[(i * 2) + (numVerticesPerDisk * 3) + 1] = 0.f;
 	}
 
 	for (int i = 0; i < 2; i++)
@@ -301,11 +316,23 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices)
 		for (int j = 0; j < this->numSegments; j++)
 		{
 			int vertexIdx = (j * 3) + (this->numSegments * i * 3) + (numVerticesPerDisk * 2 * 3);
+			int textureIdx = (j * 2) + (this->numSegments * i * 2) + (numVerticesPerDisk * 2 * 2);
 			int previousVertexIdx = (numVerticesPerDisk * 3 * i) + ((j + 1) * 3);
 
 			pVertices[vertexIdx] = pVertices[previousVertexIdx];
 			pVertices[vertexIdx + 1] = pVertices[previousVertexIdx + 1];
 			pVertices[vertexIdx + 2] = pVertices[previousVertexIdx + 2];
+
+			if (i == 0) //texture pos for top row of vertices of cylinder
+			{
+				pTextures[textureIdx] = (float)j/(float)this->numSegments;
+				pTextures[textureIdx + 1] = 1.f;
+			}
+			else //texture pos for bottom row of vertices of cylinder
+			{
+				pTextures[textureIdx] = (float)j / (float)this->numSegments;
+				pTextures[textureIdx + 1] = 0.f;
+			}
 		}
 	}
 }
