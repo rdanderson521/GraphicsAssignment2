@@ -20,13 +20,18 @@ void Tree::generate(string rule, int levels)
 {
 
 	this->nodes.clear();
+	this->stripStarts.clear();
+	this->stripSizes.clear();
+	this->fanStarts.clear();
+	this->fanSizes.clear();
+
 	srand(time(NULL));
 	stack<mat4> transformations;
 	transformations.push(mat4(1.0f));
 
 	this->generateRecurse(rule, levels, transformations);
 
-	CylinderAttribArrays *cA = cylinder.getCylinderAttribs(15,this->BRANCH_SCALE); 
+	CylinderAttribArrays *cA = cylinder.getCylinderAttribs(7,this->BRANCH_SCALE); 
 
 	vector<vec3> verticesTemplate, normalsTemplate;
 	for (int i = 0; i < cA->numVertices; i++)
@@ -104,6 +109,7 @@ void Tree::generate(string rule, int levels)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	/* Store the normals in a buffer object */
+	if (this->normalsBufferObject == 0)
 	glGenBuffers(1, &this->normalsBufferObject);
 	glBindBuffer(GL_ARRAY_BUFFER, this->normalsBufferObject);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * totalVertices * 3, pNormals, GL_STATIC_DRAW);
@@ -189,7 +195,7 @@ void Tree::generateRecurse(string rule, int levels, stack<mat4>& transformations
 }
 
 
-void Tree::render(stack<mat4>& model, mat4& view, GLuint renderModelID, GLuint normalMatrixID)
+void Tree::render(int drawmode)
 {
 
 	/* Draw the vertices as GL_POINTS */
@@ -213,8 +219,6 @@ void Tree::render(stack<mat4>& model, mat4& view, GLuint renderModelID, GLuint n
 	glEnableVertexAttribArray(3);
 
 	glPointSize(3.f);
-
-	int drawmode = 0;
 
 	// Enable this line to show model in wireframe
 	if (drawmode == 1)

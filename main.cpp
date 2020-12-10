@@ -15,6 +15,7 @@ if you prefer */
 #include "wrapper_glfw.h"
 #include <iostream>
 #include <stack>
+#include <chrono>
 
    /* Include GLM core and matrix extensions*/
 #include <glm/glm.hpp>
@@ -26,7 +27,7 @@ if you prefer */
 #include "cubev2.h"
 #include "tube.h"
 #include "tree.h"
-#include "cylinder.h"
+#include "terrain_object.h"
 
 #include "texture_loader.h"
 
@@ -72,19 +73,37 @@ GLuint colourModeID, emitModeID, attenuationModeID;
 GLuint colourOverrideID, reflectivenessID, numLightsID;
 GLuint lightSpaceMatrixID, shadowMapID;
 GLuint textureID, useTextureID;
+GLuint normalMapID, useNormalMapID;
 
-const int maxNumLights = 10;
+const int maxNumLights = 100;
 GLuint lightPosID[maxNumLights];
 GLuint lightColourID[maxNumLights];
 GLuint lightModeID[maxNumLights];
 int numLights;
 
-int controlMode;
 
+// program and global variables for terrain
+GLuint terrainProgram;		/* Identifier for the shader prgoram */
+
+/* Uniforms*/
+GLuint modelTerrainID, viewTerrainID, projectionTerrainID, normalMatrixTerrainID, viewPosTerrainID;
+GLuint reflectivenessTerrainID, numLightsTerrainID;
+GLuint lightSpaceMatrixTerrainID, shadowMapTerrainID;
+GLuint useTextureID;
+GLuint texSandID, texGrassID, texDirtID, texRockID;
+//GLuint normalMapID, useNormalMapID;
+
+
+
+
+int controlMode;
 
 GLfloat aspect_ratio;		/* Aspect ratio of the window defined in the reshape callback*/
 int windowWidth, windowHeight;
 GLuint numspherevertices;
+
+
+
 
 /* Global instances of our objects */
 Tube tube;
@@ -92,10 +111,13 @@ Tube motorBell, motorStator, motorShaft;
 Cubev2 cube;
 Sphere sphere;
 Tree tree;
-Cylinder cylinder;
+terrain_object* terrain;
+
+std::vector<vec3> treeLocations;
 
 // texture IDs
 GLuint treeTexture;
+GLuint treeNormalMap;
 
 using namespace std;
 using namespace glm;
@@ -236,21 +258,39 @@ void init(GLWrapper* glw)
 
 	textureID = glGetUniformLocation(program, "tex");
 	useTextureID = glGetUniformLocation(program, "useTex");
+
+	normalMapID = glGetUniformLocation(program, "normalMap");
+	useNormalMapID = glGetUniformLocation(program, "useNormalMap");
+
+
+
 	
 
 	/* create our sphere and cube objects */
 
 	sphere.makeSphere(20, 20);
 	tube.makeTube(15, 0.1);
-	cylinder.makeCylinder(4,1.f);
 	motorBell.makeTube(40, 0.1);
 	motorStator.makeTube(40, 0.85);
 	motorShaft.makeTube(40, 0.7);
 	cube.makeCube();
-	tree.generate("F[[-F]F[+F]]",5);
+	tree.generate("F[[-F]F[+F]]",4);
+
+	terrain = new terrain_object(4, 1.f, 2.f);
+	terrain->createTerrain(100, 100, 20.f, 20.f);
+	terrain->setColourBasedOnHeight();
+	terrain->createObject();
+
+	for (int i = 0; i < 20; i++)
+	{
+		int treeX = (rand() % 20) - 10, treeZ = (rand() % 20) - 10;
+		int treeY = terrain->heightAtPosition(treeX, treeZ);
+		treeLocations.push_back(vec3(treeX, treeY, treeZ));
+	}
+	
 
 	treeTexture = loadTexture("textures/Bark_004_basecolor.jpg");
-	cout << "tree texture: " << treeTexture << endl;
+	treeNormalMap = loadTexture("textures/Bark_004_normal.jpg");
 
 	// print instructions
 	cout << endl <<
@@ -373,34 +413,6 @@ void render(mat4& view, GLuint renderModelID)
 				model.pop();
 			}
 		}
-
-		model.push(model.top());
-		{
-
-			//model.top() = translate(model.top(), vec3(0.f, 1.0f, 0.f));
-
-			// set the reflectiveness uniform
-			glUniform1f(reflectivenessID, frameReflect);
-			// set the colour uniform
-			glUniform4fv(colourOverrideID, 1, &treeColour[0]);
-			// Send the model uniform and normal matrix to the currently bound shader,
-			glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
-			// Recalculate the normal matrix and send to the vertex shader
-			normalmatrix = transpose(inverse(mat3(view * model.top())));
-			glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
-
-			glActiveTexture(GL_TEXTURE0 + 0);
-			glBindTexture(GL_TEXTURE_2D, treeTexture);
-			
-			glUniform1i(textureID, 0);
-
-			glUniform1i(useTextureID, 1);
-
-			tree.render(model, view, renderModelID, normalMatrixID);
-			//cylinder.drawCylinder(drawmode);
-			glUniform1i(useTextureID, 0);
-		}
-		model.pop();
 
 		// frame top and bottom plates
 		model.push(model.top());
@@ -840,21 +852,61 @@ void render(mat4& view, GLuint renderModelID)
 	// ground plane
 	model.push(model.top());
 	{
-
-		model.top() = translate(model.top(), vec3(0.f, -1.f, 0.f));
-		model.top() = scale(model.top(), groundPlaneScale);
-
 		// set the reflectiveness uniform
 		glUniform1f(reflectivenessID, frameReflect);
 		// set the colour uniform
-		glUniform4fv(colourOverrideID, 1, &groundPlaneColour[0]);
+		glUniform1ui(colourModeID, 0);
 		// Send the model uniform and normal matrix to the currently bound shader,
 		glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
 		// Recalculate the normal matrix and send to the vertex shader
 		normalmatrix = transpose(inverse(mat3(view * model.top())));
 		glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
 
-		cube.drawCube(drawmode);
+		terrain->drawObject(drawmode);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, treeTexture);
+		glUniform1i(textureID, 0);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, treeNormalMap);
+		glUniform1i(normalMapID, 1);
+
+		// set the reflectiveness uniform
+		glUniform1f(reflectivenessID, frameReflect);
+		// set the colour uniform
+		glUniform4fv(colourOverrideID, 1, &treeColour[0]);
+
+		glUniform1i(useTextureID, 1);
+		glUniform1i(useNormalMapID, 1);
+
+		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+		for (int i = 0; i < treeLocations.size(); i++)
+		{
+			model.push(model.top());
+			{
+				model.top() = translate(model.top(), treeLocations.at(i));
+				
+				// Send the model uniform and normal matrix to the currently bound shader,
+				glUniformMatrix4fv(renderModelID, 1, GL_FALSE, &(model.top()[0][0]));
+				// Recalculate the normal matrix and send to the vertex shader
+				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				glUniformMatrix3fv(normalMatrixID, 1, GL_FALSE, &normalmatrix[0][0]);
+
+				tree.render(drawmode);
+
+				
+			}
+			model.pop();
+		}
+
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+		std::cout << "Tree Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+
+		glUniform1i(useNormalMapID, 0);
+		glUniform1i(useTextureID, 0);
 	}
 	model.pop();
 }
@@ -907,7 +959,7 @@ void display()
 	}
 
 	view = glm::lookAt(lightPos,
-		vec3(x, y, z),
+		vec3(x, 2.5f, z),
 		vec3(0.0f, 1.0f, 0.0f));
 
 	mat4 lightSpace = projection * view;
@@ -937,7 +989,7 @@ void display()
 	/* Make the compiled shader program current */
 	glUseProgram(program);
 
-	projection = perspective(radians(60.f), aspect_ratio, 0.1f, 100.f);
+	projection = perspective(radians(75.f), aspect_ratio, 0.1f, 100.f);
 
 	if (controlMode == 1)
 	{
@@ -958,7 +1010,7 @@ void display()
 			temp = 0;
 
 		view = lookAt(
-			vec3(0, 2, 0), // Camera is at (0,0,4), in World Space
+			vec3(0, 7, 0), // Camera is at (0,0,4), in World Space
 			vec3(x, y, z), // and looks at the origin
 			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 		);
@@ -979,9 +1031,9 @@ void display()
 	glUniformMatrix4fv(projectionID, 1, GL_FALSE, &projection[0][0]);
 	glUniformMatrix4fv(lightSpaceMatrixID, 1, GL_FALSE, &lightSpace[0][0]);
 	
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glUniform1i(shadowMapID, 1);
+	glUniform1i(shadowMapID, 5);
 	
 	
 
@@ -994,9 +1046,9 @@ void display()
 	
 
 	GLfloat minmaxXZ = 9.5f;
-	GLfloat maxY = 5.f;
-	GLfloat minY = -0.8f;
-	GLfloat minYFly = -0.6f;
+	GLfloat maxY = 15.f;
+	GLfloat minY = terrain->heightAtPosition(x,z) + 0.2f;
+	GLfloat minYFly = terrain->heightAtPosition(x, z)+ 0.2f;
 	
 	if (controlMode == 1)
 	{

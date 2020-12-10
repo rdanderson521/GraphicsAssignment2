@@ -45,7 +45,7 @@ public:
 
 	void generate(string rule, int recurseLevels = 1);
 
-	void render(stack<mat4>& model, mat4& view, GLuint renderModelID, GLuint normalMatrixID);
+	void render(int drawmode);
 
 private:
 

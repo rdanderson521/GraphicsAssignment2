@@ -18,18 +18,18 @@ out vec4 outputColor;
 uniform vec3 viewPos;
 uniform sampler2D shadowMap;
 
-uniform sampler2D tex;
+uniform sampler2D texSand;
+uniform sampler2D texGrass;
+uniform sampler2D texDirt;
+uniform sampler2D texRock;
 uniform bool useTex;
 
 uniform sampler2D normalMap;
 uniform bool useNormalMap;
 
-
 uniform mat4 model, view, projection;
 uniform mat3 normalMatrix;
 
-uniform uint emitMode;
-uniform vec3 emitColour;
 uniform vec4 lightPos[100];
 uniform vec3 lightColour[100];
 uniform uint lightMode[100];
