@@ -15,16 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="poslight.frag">
+    <None Include="shaders\terrain.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="poslight.vert">
+    <None Include="shaders\poslight.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shadows.frag">
+    <None Include="shaders\poslight.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="shadows.vert">
+    <None Include="shaders\shadows.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\shadows.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\terrain.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

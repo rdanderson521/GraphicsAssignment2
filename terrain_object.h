@@ -33,16 +33,20 @@ public:
 	glm::vec3 *vertices;
 	glm::vec3 *normals;
 	glm::vec3 *colours;
+	glm::vec2 *textures;
 	std::vector<GLuint> elements;
 	GLfloat* noise;
 
 	GLuint vbo_mesh_vertices;
 	GLuint vbo_mesh_normals;
 	GLuint vbo_mesh_colours;
+	GLuint vbo_mesh_texture;
 	GLuint ibo_mesh_elements;
+
 	GLuint attribute_v_coord;
 	GLuint attribute_v_normal;
 	GLuint attribute_v_colour;
+	GLuint attribute_v_texture;
 
 	GLuint xsize;
 	GLuint zsize;

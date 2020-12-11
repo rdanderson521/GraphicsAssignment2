@@ -18,10 +18,8 @@ out vec4 outputColor;
 uniform vec3 viewPos;
 uniform sampler2D shadowMap;
 
-uniform sampler2D texSand;
-uniform sampler2D texGrass;
-uniform sampler2D texDirt;
-uniform sampler2D texRock;
+uniform float texThres[4];
+uniform sampler2D tex[4];
 uniform bool useTex;
 
 uniform sampler2D normalMap;
@@ -64,7 +62,20 @@ void main()
 	vec4 colour;
 	if (useTex)
 	{
-		colour = texture(tex, fIn.texCoord);
+		int i = 3;
+		while (i >= 0 && fIn.pos.y < texThres[i])
+		{
+			i--;
+		}
+
+		if (i >= 0)
+		{
+			colour = texture(tex[i], fIn.texCoord);
+		}
+		else 
+		{
+			colour = fIn.vertexColour;
+		}
 	}
 	else
 	{
@@ -79,19 +90,8 @@ void main()
 //		normal = normalize(normal * 2.0 - 1.0); 
 //	}
 
-	vec3 emissive = vec3(0); // emmissive light component
-	if (emitMode == 1)
-	{
-		if (emitColour != vec3(0.f))
-		{
-			emissive = emitColour;
-		}
-		else
-		{
-			emissive = vec3(1.0, 1.0, 0.8);
-		}
-	}
-	outputColor =  vec4((global_ambient * colour.xyz) + emissive , 1.f);
+
+	outputColor =  vec4((global_ambient * colour.xyz)  , 1.f);
 	for (int i = 0; i < numLights; i++)
 	{
 		vec4 position_h = vec4(fIn.pos, 1.0);

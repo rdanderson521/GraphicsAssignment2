@@ -143,12 +143,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="poslight.frag" />
-    <None Include="poslight.vert" />
-    <None Include="shadows.frag" />
-    <None Include="shadows.vert" />
-    <None Include="terrain.frag" />
-    <None Include="terrain.vert" />
+    <None Include="shaders\poslight.frag" />
+    <None Include="shaders\poslight.vert" />
+    <None Include="shaders\shadows.frag" />
+    <None Include="shaders\shadows.vert" />
+    <None Include="shaders\terrain.frag" />
+    <None Include="shaders\terrain.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cubev2.h" />

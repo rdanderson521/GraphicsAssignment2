@@ -25,6 +25,7 @@ terrain_object::terrain_object(int octaves, GLfloat freq, GLfloat scale)
 	attribute_v_coord = 0;
 	attribute_v_colour = 1;
 	attribute_v_normal = 2;
+	attribute_v_texture = 3;
 	xsize = 0;	// Set to zero because we haven't created the heightfield array yet
 	zsize = 0;	
 	perlin_octaves = octaves;
@@ -40,6 +41,7 @@ terrain_object::~terrain_object()
 	if (vertices) delete[] vertices;
 	if (normals) delete[] normals;
 	if (colours) delete[] colours;
+	if (textures) delete[] textures;
 }
 
 
@@ -59,6 +61,11 @@ void terrain_object::createObject()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	/* Store the normals in a buffer object */
+	glGenBuffers(1, &vbo_mesh_texture);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_texture);
+	glBufferData(GL_ARRAY_BUFFER, xsize * zsize * sizeof(vec2), &(textures[0]), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	glGenBuffers(1, &vbo_mesh_normals);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_normals);
 	glBufferData(GL_ARRAY_BUFFER, xsize * zsize * sizeof(vec3), &(normals[0]), GL_STATIC_DRAW);
@@ -114,6 +121,17 @@ void terrain_object::drawObject(int drawmode)
 		0                   // offset of first element
 		);
 	glEnableVertexAttribArray(attribute_v_normal);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_texture);
+	glVertexAttribPointer(
+		attribute_v_texture, // attribute
+		2,                  // number of elements per vertex, here (x,y,z)
+		GL_FLOAT,           // the type of each element
+		GL_FALSE,           // take our values as-is
+		0,                  // no extra data between each position
+		0                   // offset of first element
+	);
+	glEnableVertexAttribArray(attribute_v_texture);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_mesh_elements); 
 	glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -196,6 +214,7 @@ void terrain_object::createTerrain(GLuint xp, GLuint zp, GLfloat xs, GLfloat zs,
 	vertices = new vec3[numvertices];
 	normals  = new vec3[numvertices];
 	colours = new vec3[numvertices];
+	textures = new vec2[numvertices];
 
 	/* First calculate the noise array which we'll use for our vertex height values */
 	calculateNoise();
@@ -217,6 +236,8 @@ void terrain_object::createTerrain(GLuint xp, GLuint zp, GLfloat xs, GLfloat zs,
 		{
 			GLfloat height = noise[(row * xsize + col) * perlin_octaves + perlin_octaves - 1];
 			vertices[row * xsize + col] = vec3(xpos, (height - 0.5f) * height_scale, zpos);
+
+			textures[row * xsize + col] = vec2(xpos, zpos);
 
 			// Zero the normal, it gets calculated at the end of this method after all the vertex positions
 			// have been set.
