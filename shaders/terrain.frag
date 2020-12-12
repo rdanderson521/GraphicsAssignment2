@@ -31,10 +31,11 @@ uniform mat3 normalMatrix;
 uniform vec4 lightPos[100];
 uniform vec3 lightColour[100];
 uniform uint lightMode[100];
+uniform uint attenuationMode[100];
 uniform uint numLights;
 uniform float reflectiveness; // value of 0.01 - 1
 
-uniform uint attenuationMode;
+
 
 vec3 specular_albedo = vec3(1.0, 0.8, 0.6);
 vec3 global_ambient = vec3(0.05, 0.05, 0.05);
@@ -114,7 +115,7 @@ void main()
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (0.2 + (0.8*currentLightColour));
+		vec3 diffuse = 0.5*  max(dot(N, L), 0.0) * colour.xyz * (0.2 + (0.8*currentLightColour));
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
@@ -127,9 +128,9 @@ void main()
 
 		// Calculate the attenuation factor;
 		float attenuation;
-		if (attenuationMode != 1)
+		if (attenuationMode[i] == 0)
 		{
-			attenuation = 0.050;
+			attenuation = 0.5f;
 		}
 		else
 		{

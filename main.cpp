@@ -80,13 +80,15 @@ const int maxNumLights = 100;
 
 /* Uniforms*/
 GLuint modelID[NUM_PROGRAMS], viewID[NUM_PROGRAMS], projectionID[NUM_PROGRAMS], normalMatrixID[NUM_PROGRAMS], viewPosID[NUM_PROGRAMS];
-GLuint colourModeID[NUM_PROGRAMS], emitModeID[NUM_PROGRAMS], attenuationModeID[NUM_PROGRAMS];
+GLuint colourModeID[NUM_PROGRAMS], emitModeID[NUM_PROGRAMS];
 GLuint colourOverrideID[NUM_PROGRAMS], reflectivenessID[NUM_PROGRAMS], numLightsID[NUM_PROGRAMS];
 GLuint lightSpaceMatrixID[NUM_PROGRAMS], shadowMapID[NUM_PROGRAMS];
 GLuint textureID[NUM_PROGRAMS], terrainTextureID[numTerrainTextures], terrainTextureThresholdID[numTerrainTextures], useTextureID[NUM_PROGRAMS];
 GLuint lightPosID[NUM_PROGRAMS][maxNumLights];
 GLuint lightColourID[NUM_PROGRAMS][maxNumLights];
 GLuint lightModeID[NUM_PROGRAMS][maxNumLights];
+GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
+GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
 
 
 int numLights;
@@ -255,7 +257,6 @@ void init(GLWrapper* glw)
 		{
 			colourModeID[i] = glGetUniformLocation(programs[i], "colourMode");
 			emitModeID[i] = glGetUniformLocation(programs[i], "emitMode");
-			attenuationModeID[i] = glGetUniformLocation(programs[i], "attenuationMode");
 			viewID[i] = glGetUniformLocation(programs[i], "view");
 			projectionID[i] = glGetUniformLocation(programs[i], "projection");
 			normalMatrixID[i] = glGetUniformLocation(programs[i], "normalMatrix");
@@ -269,6 +270,9 @@ void init(GLWrapper* glw)
 
 				str = "lightMode[" + std::to_string(j) + "]";
 				lightModeID[i][j] = glGetUniformLocation(programs[i], str.c_str());
+
+				str = "attenuationMode[" + std::to_string(j) + "]";
+				attenuationModeID[i][j] = glGetUniformLocation(programs[i], str.c_str());
 			}
 			numLightsID[i] = glGetUniformLocation(programs[i], "numLights");
 			viewPosID[i] = glGetUniformLocation(programs[i], "viewPos");
@@ -464,6 +468,7 @@ void render(mat4& view, GLuint programID)
 						lightColour = vec3(0.1f, 0.6f, 0.1f);
 					glUniform4fv(lightPosID[programID][numLights], 1, &lightPos[0]);
 					glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
+					glUniform1ui(attenuationModeID[programID][numLights], 1);
 					glUniform1ui(numLightsID[programID], ++numLights);
 					// Recalculate the normal matrix and send the model and normal matrices to the vertex shader																							// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																						// Recalculate the normal matrix and send to the vertex shader
 					glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
@@ -1018,11 +1023,88 @@ void display()
 	mat3 normalmatrix;
 
 	// Projection matrix : 60° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-	mat4 projection;
+	mat4 renderProjection;
 
 	// Camera matrix
-	mat4 view;
-	
+	mat4 renderView;
+
+
+	renderProjection = perspective(radians(75.f), aspect_ratio, 0.1f, 20.f);
+
+	if (controlMode == 1)
+	{
+		renderView = lookAt(
+			vec3(0, 0, -4), // Camera is at (0,0,4), in World Space
+			vec3(0, 0, 0), // and looks at the origin
+			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+		);
+
+		renderView = rotate(renderView, -angle_x, vec3(1, 0, 0));
+		renderView = rotate(renderView, radians(angle_y), vec3(0, 1, 0));
+
+	}
+	else if (controlMode == 2)
+	{
+		GLfloat temp = x / z;
+		if (abs(x) < 0.01 || abs(z) < 0.01)
+			temp = 0;
+
+		renderView = lookAt(
+			vec3(0, 7, 0), // Camera is at (0,0,4), in World Space
+			vec3(x, y, z), // and looks at the origin
+			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+		);
+	}
+
+	vec3 lightDir = vec3(2.f, -4.f, 2.f);
+	vec3 lightDirNormalised = normalize(lightDir);
+
+	mat4 shadowView = glm::lookAt(
+		-1.f*lightDir,
+		vec3(0.f, 0.f, 0.f),
+		vec3(0.0f, 1.0f, 0.0f));
+
+	mat3 lightVectors = shadowView;
+
+	// below code gets the points in the cameras frustum in world 
+	vector<vec4> cubeNDC;
+	cubeNDC.push_back(vec4(-1.0f, -1.0f, -1.0f, 1.0f));
+	cubeNDC.push_back(vec4(1.0f, -1.0f, -1.0f, 1.0f));
+	cubeNDC.push_back(vec4(1.0f, -1.0f, 1.0f, 1.0f));
+	cubeNDC.push_back(vec4(-1.0f, -1.0f, 1.0f, 1.0f));
+	cubeNDC.push_back(vec4(-1.0f, 1.0f, -1.0f, 1.0f));
+	cubeNDC.push_back(vec4(1.0f, 1.0f, -1.0f, 1.0f));
+	cubeNDC.push_back(vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	cubeNDC.push_back(vec4(-1.0f, 1.0f, 1.0f, 1.0f));
+
+	mat4 viewProjectionMatrixInverse = inverse(renderProjection * renderView);
+
+	vector <vec4> cameraFrustum;
+	for (vec4 vertex : cubeNDC) {
+		vec4 vertexTransformed = viewProjectionMatrixInverse * vertex;
+		vertexTransformed /= vertexTransformed.w;
+		cameraFrustum.push_back(vertexTransformed);
+	}
+
+	vec3 minBound, maxBound;
+
+	for (int i = 0; i < 3; i++)
+	{
+		bool first = true;
+		for (vec3 vertex : cameraFrustum)
+		{
+			if (first)
+			{
+				minBound[i] = maxBound[i] = dot(vertex, lightVectors[i]);
+				first = false;
+			}
+			else
+			{
+				minBound[i] = min(minBound[i], dot(vertex, lightVectors[i]));
+				maxBound[i] = max(maxBound[i], dot(vertex, lightVectors[i]));
+			}
+		}
+	}
 
 	// render shadow maps
 	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -1032,30 +1114,18 @@ void display()
 
 	resetLights();
 
-	projection = ortho(-10.f, 10.f, -10.f, 10.f, 0.1f, 20.f);
+	vec3 bounds = maxBound - minBound;
+
+	mat4 shadowProjection = ortho(-0.5f * bounds.x, 0.5f * bounds.x, -0.5f * bounds.y, 0.5f * bounds.y, -10.f, bounds.z);
 
 
-	vec3 lightPos;
-	if (controlMode == 1)
-	{
-		lightPos = vec3(-4.f, 4.f, -4.f);
-	}
-	else if (controlMode == 2)
-	{
-		lightPos = vec3(0.f, 4.f, 0.f);
-	}
-
-	view = glm::lookAt(lightPos,
-		vec3(x, 2.5f, z),
-		vec3(0.0f, 1.0f, 0.0f));
-
-	mat4 lightSpace = projection * view;
+	mat4 lightSpace = shadowProjection * shadowView;
 
 
 	glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
-	render(view,SHADOW_PROGRAM);
-	renderTerrain(view,SHADOW_PROGRAM);
+	render(shadowView,SHADOW_PROGRAM);
+	renderTerrain(shadowView,SHADOW_PROGRAM);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glUseProgram(0);
@@ -1077,46 +1147,19 @@ void display()
 	/* Make the compiled shader program current */
 	glUseProgram(programs[MAIN_PROGRAM]);
 
-	projection = perspective(radians(75.f), aspect_ratio, 0.1f, 100.f);
-
-	if (controlMode == 1)
-	{
-		view = lookAt(
-			vec3(0, 0, -4), // Camera is at (0,0,4), in World Space
-			vec3(0, 0, 0), // and looks at the origin
-			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-		);
-
-		view = rotate(view, -angle_x, vec3(1, 0, 0));
-		view = rotate(view, radians(angle_y), vec3(0, 1, 0));
-		
-	}
-	else if (controlMode == 2)
-	{
-		GLfloat temp = x / z;
-		if (abs(x) < 0.01 || abs(z) < 0.01)
-			temp = 0;
-
-		view = lookAt(
-			vec3(0, 7, 0), // Camera is at (0,0,4), in World Space
-			vec3(x, y, z), // and looks at the origin
-			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-		);
-	}
-
 	resetLights();
 	vec3 lightColour = vec3(10.f);
-	glUniform4fv(lightPosID[MAIN_PROGRAM][numLights], 1, &lightPos[0]);
+	glUniform4fv(lightPosID[MAIN_PROGRAM][numLights], 1, &lightDir[0]);
 	glUniform1ui(lightModeID[MAIN_PROGRAM][numLights], 1);
 	glUniform3fv(lightColourID[MAIN_PROGRAM][numLights], 1, &lightColour[0]);
+	glUniform1ui(attenuationModeID[MAIN_PROGRAM][numLights], 0);
 	glUniform1ui(numLightsID[MAIN_PROGRAM], ++numLights);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
 	glUniform1ui(colourModeID[MAIN_PROGRAM], colourmode);
-	glUniform1ui(attenuationModeID[MAIN_PROGRAM], attenuationmode);
-	glUniformMatrix4fv(viewID[MAIN_PROGRAM], 1, GL_FALSE, &view[0][0]);
-	glUniformMatrix4fv(projectionID[MAIN_PROGRAM], 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(viewID[MAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
+	glUniformMatrix4fv(projectionID[MAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
 	glUniformMatrix4fv(lightSpaceMatrixID[MAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 	
 	glActiveTexture(GL_TEXTURE5);
@@ -1125,27 +1168,27 @@ void display()
 	
 	
 
-	render(view,MAIN_PROGRAM);
+	render(renderView,MAIN_PROGRAM);
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 
-	glUniform4fv(lightPosID[TERRAIN_PROGRAM][numLights], 1, &lightPos[0]);
+	glUniform4fv(lightPosID[TERRAIN_PROGRAM][numLights], 1, &lightDir[0]);
 	glUniform1ui(lightModeID[TERRAIN_PROGRAM][numLights], 1);
 	glUniform3fv(lightColourID[TERRAIN_PROGRAM][numLights], 1, &lightColour[0]);
+	glUniform1ui(attenuationModeID[MAIN_PROGRAM][numLights], 0);
 	glUniform1ui(numLightsID[TERRAIN_PROGRAM], ++numLights);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
 	glUniform1ui(colourModeID[TERRAIN_PROGRAM], colourmode);
-	glUniform1ui(attenuationModeID[TERRAIN_PROGRAM], attenuationmode);
-	glUniformMatrix4fv(viewID[TERRAIN_PROGRAM], 1, GL_FALSE, &view[0][0]);
-	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(viewID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
+	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
 	glUniformMatrix4fv(lightSpaceMatrixID[TERRAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glUniform1i(shadowMapID[TERRAIN_PROGRAM], 5);
-	renderTerrain(view,TERRAIN_PROGRAM);
+	renderTerrain(renderView,TERRAIN_PROGRAM);
 
 	glDisableVertexAttribArray(0);
 	glUseProgram(0);

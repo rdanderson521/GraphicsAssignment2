@@ -33,10 +33,10 @@ uniform vec3 emitColour;
 uniform vec4 lightPos[100];
 uniform vec3 lightColour[100];
 uniform uint lightMode[100];
+uniform uint attenuationMode[100];
 uniform uint numLights;
 uniform float reflectiveness; // value of 0.01 - 1
 
-uniform uint attenuationMode;
 
 vec3 specular_albedo = vec3(1.0, 0.8, 0.6);
 vec3 global_ambient = vec3(0.05, 0.05, 0.05);
@@ -127,9 +127,9 @@ void main()
 
 		// Calculate the attenuation factor;
 		float attenuation;
-		if (attenuationMode != 1)
+		if (attenuationMode[i] == 0)
 		{
-			attenuation = 0.050;
+			attenuation = 0.5f;
 		}
 		else
 		{
