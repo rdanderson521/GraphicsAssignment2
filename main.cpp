@@ -508,6 +508,17 @@ void render(mat4& view, GLuint programID)
 			}
 		}
 
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture[CARBON]);
+		glUniform1i(textureID[programID], 0);
+
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, roughnessMap[CARBON]);
+		glUniform1i(roughnessID[programID], 0);
+
+		glUniform1i(useTextureID[programID], 1);
+		glUniform1i(useRoughnessID[programID], 1);
+
 		// frame top and bottom plates
 		model.push(model.top());
 		{
@@ -571,6 +582,9 @@ void render(mat4& view, GLuint programID)
 			}
 			model.pop();
 		}
+
+		glUniform1i(useTextureID[programID], 0);
+		glUniform1i(useRoughnessID[programID], 0);
 
 
 		//motors 
@@ -950,12 +964,17 @@ void render(mat4& view, GLuint programID)
 		glBindTexture(GL_TEXTURE_2D, texture[BARK]);
 		glUniform1i(textureID[programID], 0);
 
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, roughnessMap[BARK]);
+		glUniform1i(roughnessID[programID], 0);
+
 		// set the reflectiveness uniform
 		glUniform1f(reflectivenessID[programID], frameReflect);
 		// set the colour uniform
 		glUniform4fv(colourOverrideID[programID], 1, &treeColour[0]);
 
 		glUniform1i(useTextureID[programID], 1);
+		glUniform1i(useRoughnessID[programID], 1);
 
 		//std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -979,6 +998,7 @@ void render(mat4& view, GLuint programID)
 		}
 
 		glUniform1i(useTextureID[programID], 0);
+		glUniform1i(useRoughnessID[programID], 0);
 	}
 	model.pop();
 }

@@ -131,7 +131,24 @@ void main()
 		vec3 R = reflect(-L, N);
 		vec3 specular = vec3(0.f);
 
-		specular = pow(max(dot(R, V), 0.0),16/* 1/max(reflectiveness,0.0001)*/ ) * specular_albedo * (0.8 + (0.2*currentLightColour));
+		float shinyness = 0.f;
+		if (useRoughness)
+		{
+			float roughnessVal = texture(roughness, fIn.texCoord).r;
+			//if (roughnessVal < 0.3)
+			{
+				shinyness = 1500.f/(500.f * roughnessVal + 0.01f);
+			}
+		}
+		else 
+		{
+			shinyness = reflectiveness;
+		}
+
+		if (shinyness != 0)
+		{
+			specular = 0.5 * pow(max(dot(R, V), 0.0),shinyness) * specular_albedo;
+		}
 
 
 		// Calculate the attenuation factor;

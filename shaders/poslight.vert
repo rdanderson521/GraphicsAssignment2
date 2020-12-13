@@ -44,7 +44,7 @@ void main()
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
 	vOut.FragPosLightSpace = lightSpaceMatrix * vec4(vOut.pos,1.f);
-	vOut.texCoord = texCoord;
+	vOut.texCoord = position.xz;
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);
 }
