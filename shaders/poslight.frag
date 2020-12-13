@@ -39,7 +39,7 @@ uniform float reflectiveness; // value of 0.01 - 1
 
 
 vec3 specular_albedo = vec3(1.0, 0.8, 0.6);
-vec3 global_ambient = vec3(0.05, 0.05, 0.05);
+vec3 global_ambient = vec3(0.1, 0.1, 0.1);
 
 float shadowCalculation(vec4 lightSpace)
 {
@@ -103,18 +103,22 @@ void main()
 			currentLightColour = vec3(1.0f);
 		}
 
-		vec3 ambient = colour.xyz  * 0.1 * (0.8 + (0.2*currentLightColour));
+		vec3 ambient = colour.xyz  * 0.1;
 
 		// Define our vectors to calculate diffuse and specular lighting
 		mat4 mv_matrix = view * model;		// Calculate the model-view transformation
 		vec4 P = view * position_h;	// Modify the vertex position (x, y, z, w) by the model-view transformation
 		vec3 N = normalize(normalMatrix * normal);		// Modify the normals by the normal-matrix (i.e. to model-view (or eye) coordinates )
-		vec3 L = light_pos3 - P.xyz;		// Calculate the vector from the light position to the vertex in eye space
+		vec3 L = light_pos3;
+		if ( lightMode[i] == 1)
+		{
+			L = light_pos3 - P.xyz;		// Calculate the vector from the light position to the vertex in eye space
+		}
 		float distanceToLight = length(L);	// For attenuation
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (0.2 + (0.8*currentLightColour));
+		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (0.8*currentLightColour);
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
@@ -129,7 +133,7 @@ void main()
 		float attenuation;
 		if (attenuationMode[i] == 0)
 		{
-			attenuation = 0.5f;
+			attenuation = 1.f;
 		}
 		else
 		{
@@ -143,11 +147,11 @@ void main()
 
 		// calculate shadow value
 		float shadow = 0.f;
-		if (lightMode[i] == 1)
+		if (lightMode[i] == 0)
 		{
 			shadow = shadowCalculation(fIn.FragPosLightSpace);
 		}
 
-		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse))), 1.0);
+		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse)) ), 1.0);
 	}
 }

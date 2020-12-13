@@ -91,6 +91,7 @@ GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
 GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
 
 
+vec3 directionalLightDir = vec3(1.f, -3.f, 2.f);
 int numLights;
 
 
@@ -468,8 +469,10 @@ void render(mat4& view, GLuint programID)
 						lightColour = vec3(0.1f, 0.6f, 0.1f);
 					glUniform4fv(lightPosID[programID][numLights], 1, &lightPos[0]);
 					glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
-					glUniform1ui(attenuationModeID[programID][numLights], 1);
+					glUniform1ui(lightModeID[programID][numLights], 1);
+					glUniform1ui(attenuationModeID[programID][numLights], 0);
 					glUniform1ui(numLightsID[programID], ++numLights);
+
 					// Recalculate the normal matrix and send the model and normal matrices to the vertex shader																							// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																						// Recalculate the normal matrix and send to the vertex shader
 					glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 					normalmatrix = transpose(inverse(mat3(view * model.top())));
@@ -1015,6 +1018,16 @@ void resetLights()
 	
 }
 
+void setDirectionalLightUniforms(GLuint programID)
+{
+	vec3 lightColour = vec3(1.f);
+	glUniform4fv(lightPosID[programID][numLights], 1, &directionalLightDir[0]);
+	glUniform1ui(lightModeID[programID][numLights], 0);
+	glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
+	glUniform1ui(attenuationModeID[programID][numLights], 0);
+	glUniform1ui(numLightsID[programID], ++numLights);
+}
+
 /* Called to update the display. Note that this function is called in the event loop in the wrapper
    class because we registered display as a callback function */
 void display()
@@ -1056,11 +1069,10 @@ void display()
 		);
 	}
 
-	vec3 lightDir = vec3(2.f, -4.f, 2.f);
-	vec3 lightDirNormalised = normalize(lightDir);
+	vec3 lightDirNormalised = normalize(directionalLightDir);
 
 	mat4 shadowView = glm::lookAt(
-		-1.f*lightDir,
+		-1.f*directionalLightDir,
 		vec3(0.f, 0.f, 0.f),
 		vec3(0.0f, 1.0f, 0.0f));
 
@@ -1087,7 +1099,6 @@ void display()
 	}
 
 	vec3 minBound, maxBound;
-
 	for (int i = 0; i < 3; i++)
 	{
 		bool first = true;
@@ -1100,8 +1111,8 @@ void display()
 			}
 			else
 			{
-				minBound[i] = min(minBound[i], dot(vertex, lightVectors[i]));
-				maxBound[i] = max(maxBound[i], dot(vertex, lightVectors[i]));
+				minBound[i] = std::min(minBound[i], dot(vertex, lightVectors[i]));
+				maxBound[i] = std::max(maxBound[i], dot(vertex, lightVectors[i]));
 			}
 		}
 	}
@@ -1148,12 +1159,7 @@ void display()
 	glUseProgram(programs[MAIN_PROGRAM]);
 
 	resetLights();
-	vec3 lightColour = vec3(10.f);
-	glUniform4fv(lightPosID[MAIN_PROGRAM][numLights], 1, &lightDir[0]);
-	glUniform1ui(lightModeID[MAIN_PROGRAM][numLights], 1);
-	glUniform3fv(lightColourID[MAIN_PROGRAM][numLights], 1, &lightColour[0]);
-	glUniform1ui(attenuationModeID[MAIN_PROGRAM][numLights], 0);
-	glUniform1ui(numLightsID[MAIN_PROGRAM], ++numLights);
+	setDirectionalLightUniforms(MAIN_PROGRAM);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
@@ -1165,18 +1171,14 @@ void display()
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glUniform1i(shadowMapID[MAIN_PROGRAM], 5);
-	
-	
+
 
 	render(renderView,MAIN_PROGRAM);
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 
-	glUniform4fv(lightPosID[TERRAIN_PROGRAM][numLights], 1, &lightDir[0]);
-	glUniform1ui(lightModeID[TERRAIN_PROGRAM][numLights], 1);
-	glUniform3fv(lightColourID[TERRAIN_PROGRAM][numLights], 1, &lightColour[0]);
-	glUniform1ui(attenuationModeID[MAIN_PROGRAM][numLights], 0);
-	glUniform1ui(numLightsID[TERRAIN_PROGRAM], ++numLights);
+	resetLights();
+	setDirectionalLightUniforms(TERRAIN_PROGRAM);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
@@ -1188,6 +1190,7 @@ void display()
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glUniform1i(shadowMapID[TERRAIN_PROGRAM], 5);
+
 	renderTerrain(renderView,TERRAIN_PROGRAM);
 
 	glDisableVertexAttribArray(0);
