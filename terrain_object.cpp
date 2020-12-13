@@ -61,14 +61,14 @@ void terrain_object::createObject()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	/* Store the normals in a buffer object */
-	glGenBuffers(1, &vbo_mesh_texture);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_texture);
-	glBufferData(GL_ARRAY_BUFFER, xsize * zsize * sizeof(vec2), &(textures[0]), GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	glGenBuffers(1, &vbo_mesh_normals);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_normals);
 	glBufferData(GL_ARRAY_BUFFER, xsize * zsize * sizeof(vec3), &(normals[0]), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &vbo_mesh_texture);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_texture);
+	glBufferData(GL_ARRAY_BUFFER, xsize * zsize * sizeof(vec2), &(textures[0]), GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// Generate a buffer for the indices
@@ -125,7 +125,7 @@ void terrain_object::drawObject(int drawmode)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_mesh_texture);
 	glVertexAttribPointer(
 		attribute_v_texture, // attribute
-		2,                  // number of elements per vertex, here (x,y,z)
+		2,                  // number of elements per vertex, here (x,y)
 		GL_FLOAT,           // the type of each element
 		GL_FALSE,           // take our values as-is
 		0,                  // no extra data between each position

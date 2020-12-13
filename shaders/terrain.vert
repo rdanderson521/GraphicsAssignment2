@@ -7,7 +7,7 @@
 
 // Define the vertex attributes
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec4 colour;
+layout(location = 1) in vec3 colour;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec2 texCoord;
 
@@ -31,7 +31,7 @@ uniform mat4 lightSpaceMatrix;
 
 void main()
 {
-	vOut.vertexColour = colour;
+	vOut.vertexColour = vec4(colour,1.0);
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
 	vOut.FragPosLightSpace = lightSpaceMatrix * vec4(vOut.pos,1.f);

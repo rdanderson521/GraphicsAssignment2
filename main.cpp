@@ -91,7 +91,7 @@ GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
 GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
 
 
-vec3 directionalLightDir = vec3(1.f, -3.f, 2.f);
+vec3 directionalLightDir = normalize(vec3(1.f, -1.f, 2.f));
 int numLights;
 
 
@@ -924,7 +924,7 @@ void render(mat4& view, GLuint programID)
 	}
 	model.pop();
 
-	// ground plane
+	// trees
 	model.push(model.top());
 	{
 		glActiveTexture(GL_TEXTURE0);
@@ -960,11 +960,6 @@ void render(mat4& view, GLuint programID)
 		}
 
 		glUniform1i(useTextureID[programID], 0);
-
-		//std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-		//std::cout << "Tree Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
-
 	}
 	model.pop();
 }
@@ -994,7 +989,7 @@ void renderTerrain(mat4& view, GLuint programID)
 	// Send the model uniform and normal matrix to the currently bound shader,
 	glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model[0][0]));
 	// Recalculate the normal matrix and send to the vertex shader
-	mat3 normalmatrix = transpose(inverse(mat3(view * model)));
+	mat3 normalmatrix = transpose(inverse(mat3(/*view */ model)));
 	glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 	terrain->drawObject(drawmode);
@@ -1072,7 +1067,7 @@ void display()
 	vec3 lightDirNormalised = normalize(directionalLightDir);
 
 	mat4 shadowView = glm::lookAt(
-		-1.f*directionalLightDir,
+		-directionalLightDir,
 		vec3(0.f, 0.f, 0.f),
 		vec3(0.0f, 1.0f, 0.0f));
 
@@ -1174,6 +1169,7 @@ void display()
 
 
 	render(renderView,MAIN_PROGRAM);
+	//renderTerrain(renderView, MAIN_PROGRAM);
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 

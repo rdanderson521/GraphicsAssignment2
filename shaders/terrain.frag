@@ -14,7 +14,6 @@ in VERTEX_OUT
 
 out vec4 outputColor;
 
-
 uniform vec3 viewPos;
 uniform sampler2D shadowMap;
 
@@ -61,7 +60,8 @@ float shadowCalculation(vec4 lightSpace)
 void main()
 {
 	vec4 colour;
-	if (useTex)
+
+	if ( useTex)
 	{
 		int i = 3;
 		while (i >= 0 && fIn.pos.y < texThres[i])
@@ -110,18 +110,17 @@ void main()
 		mat4 mv_matrix = view * model;		// Calculate the model-view transformation
 		vec4 P = view * position_h;	// Modify the vertex position (x, y, z, w) by the model-view transformation
 		vec3 N = normalize(normalMatrix * normal);		// Modify the normals by the normal-matrix (i.e. to model-view (or eye) coordinates )
-		vec3 L = light_pos3;
+		vec3 L = -light_pos3;
 		float distanceToLight = 0;
 		if ( lightMode[i] == 1)
 		{
 			L = light_pos3 - P.xyz;		// Calculate the vector from the light position to the vertex in eye space
 			distanceToLight = length(L); // For attenuation
 		}
-		
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz /* (0.3 * vec3(1.f) + 0.7 *currentLightColour)*/;
+		vec3 diffuse = max(dot(L,N), 0.0) * colour.xyz /* (0.3 * vec3(1.f) + 0.7 *currentLightColour)*/;
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
