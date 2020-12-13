@@ -84,6 +84,7 @@ GLuint colourModeID[NUM_PROGRAMS], emitModeID[NUM_PROGRAMS];
 GLuint colourOverrideID[NUM_PROGRAMS], reflectivenessID[NUM_PROGRAMS], numLightsID[NUM_PROGRAMS];
 GLuint lightSpaceMatrixID[NUM_PROGRAMS], shadowMapID[NUM_PROGRAMS];
 GLuint textureID[NUM_PROGRAMS], terrainTextureID[numTerrainTextures], terrainTextureThresholdID[numTerrainTextures], useTextureID[NUM_PROGRAMS];
+GLuint roughnessID[NUM_PROGRAMS], terrainRoughnessID[numTerrainTextures], useRoughnessID[NUM_PROGRAMS];
 GLuint lightPosID[NUM_PROGRAMS][maxNumLights];
 GLuint lightColourID[NUM_PROGRAMS][maxNumLights];
 GLuint lightModeID[NUM_PROGRAMS][maxNumLights];
@@ -91,7 +92,7 @@ GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
 GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
 
 
-vec3 directionalLightDir = normalize(vec3(1.f, -1.f, 2.f));
+vec3 directionalLightDir = vec3(1.f, -2.f, 2.f);
 int numLights;
 
 
@@ -121,12 +122,14 @@ enum textures
 	DIRT,
 	ROCK,
 	BARK,
+	CARBON,
 	totalNumTextures
 };
 
 // texture IDs
 GLuint texture[totalNumTextures];
 GLuint normalMap[totalNumTextures];
+GLuint roughnessMap[totalNumTextures];
 
 using namespace std;
 using namespace glm;
@@ -283,9 +286,11 @@ void init(GLWrapper* glw)
 			shadowMapID[i] = glGetUniformLocation(programs[i], "shadowMap");
 
 			useTextureID[i] = glGetUniformLocation(programs[i], "useTex");
+			useRoughnessID[i] = glGetUniformLocation(programs[i], "useRoughness");
 			if (i == MAIN_PROGRAM)
 			{
 				textureID[i] = glGetUniformLocation(programs[i], "tex");
+				roughnessID[i] = glGetUniformLocation(programs[i], "roughness");
 			}
 			else if (i == TERRAIN_PROGRAM)
 			{
@@ -295,6 +300,8 @@ void init(GLWrapper* glw)
 					terrainTextureID[j] = glGetUniformLocation(programs[i], str.c_str());
 					str = "texThres[" + std::to_string(j) + "]";
 					terrainTextureThresholdID[j] = glGetUniformLocation(programs[i], str.c_str());
+					str = "roughness[" + std::to_string(j) + "]";
+					terrainRoughnessID[j] = glGetUniformLocation(programs[i], str.c_str());
 				}
 			}
 
@@ -334,31 +341,43 @@ void init(GLWrapper* glw)
 			{
 				texture[i] = loadTexture("textures/Bark_004_basecolor.jpg");
 				normalMap[i] = loadTexture("textures/Bark_004_normal.jpg");
+				roughnessMap[i] = loadTexture("textures/Bark_004_roughness.jpg");
 				break;
 			}
 			case(SAND):
 			{
 				texture[i] = loadTexture("textures/Sand_007_basecolor.jpg");
 				normalMap[i] = loadTexture("textures/Sand_007_normal.jpg");
+				roughnessMap[i] = loadTexture("textures/Sand_007_roughness.jpg");
 				break;
 			}
 			case(GRASS):
 			{
 				texture[i] = loadTexture("textures/Stylized_Grass_001_basecolor.jpg");
 				normalMap[i] = loadTexture("textures/Stylized_Grass_001_normal.jpg");
+				roughnessMap[i] = loadTexture("textures/Stylized_Grass_001_roughness.jpg");
 				break;
 			}
 			case(DIRT):
 			{
 				texture[i] = loadTexture("textures/Ground_wet_003_basecolor.jpg");
 				normalMap[i] = loadTexture("textures/Ground_wet_003_normal.jpg");
+				roughnessMap[i] = loadTexture("textures/Ground_wet_003_roughness.jpg");
 				break;
+			}
 			case(ROCK):
 			{
 				texture[i] = loadTexture("textures/Rock_028_COLOR.jpg");
 				normalMap[i] = loadTexture("textures/Rock_028_NORM.jpg");
+				roughnessMap[i] = loadTexture("textures/Rock_028_ROUGH.jpg");
 				break;
 			}
+			case(CARBON):
+			{
+				texture[i] = loadTexture("textures/Carbon_Fiber_001_basecolor.jpg");
+				normalMap[i] = loadTexture("textures/Carbon_Fiber_001_normal.jpg");
+				roughnessMap[i] = loadTexture("textures/Carbon_Fiber_001_roughness.jpg");
+				break;
 			}
 		}
 	}
@@ -475,7 +494,7 @@ void render(mat4& view, GLuint programID)
 
 					// Recalculate the normal matrix and send the model and normal matrices to the vertex shader																							// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																						// Recalculate the normal matrix and send to the vertex shader
 					glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-					normalmatrix = transpose(inverse(mat3(view * model.top())));
+					normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 					glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 					/* Draw our lightposition sphere  with emit mode on*/
@@ -503,7 +522,7 @@ void render(mat4& view, GLuint programID)
 			// Send the model uniform and normal matrix to the currently bound shader,
 			glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 			// Recalculate the normal matrix and send to the vertex shader
-			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 			glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 			cube.drawCube(drawmode);
@@ -522,7 +541,7 @@ void render(mat4& view, GLuint programID)
 			// Send the model uniform and normal matrix to the currently bound shader,
 			glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 			// Recalculate the normal matrix and send to the vertex shader
-			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 			glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 			cube.drawCube(drawmode);
@@ -545,7 +564,7 @@ void render(mat4& view, GLuint programID)
 				// Send the model uniform and normal matrix to the currently bound shader,
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				cube.drawCube(drawmode);
@@ -607,7 +626,7 @@ void render(mat4& view, GLuint programID)
 										// Send the model uniform and normal matrix to the currently bound shader,
 										glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 										// Recalculate the normal matrix and send to the vertex shader
-										normalmatrix = transpose(inverse(mat3(view * model.top())));
+										normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 										glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 										cube.drawCube(drawmode);
@@ -625,7 +644,7 @@ void render(mat4& view, GLuint programID)
 										// Send the model uniform and normal matrix to the currently bound shader,
 										glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 										// Recalculate the normal matrix and send to the vertex shader
-										normalmatrix = transpose(inverse(mat3(view * model.top())));
+										normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 										glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 										cube.drawCube(drawmode);
@@ -643,7 +662,7 @@ void render(mat4& view, GLuint programID)
 										// Send the model uniform and normal matrix to the currently bound shader,
 										glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 										// Recalculate the normal matrix and send to the vertex shader
-										normalmatrix = transpose(inverse(mat3(view * model.top())));
+										normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 										glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 										cube.drawCube(drawmode);
@@ -669,7 +688,7 @@ void render(mat4& view, GLuint programID)
 							// Send the model uniform and normal matrix to the currently bound shader,
 							glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 							// Recalculate the normal matrix and send to the vertex shader
-							normalmatrix = transpose(inverse(mat3(view * model.top())));
+							normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 							glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 							motorShaft.drawTube(drawmode);
@@ -689,7 +708,7 @@ void render(mat4& view, GLuint programID)
 							// Send the model uniform and normal matrix to the currently bound shader,
 							glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 							// Recalculate the normal matrix and send to the vertex shader
-							normalmatrix = transpose(inverse(mat3(view * model.top())));
+							normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 							glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 							motorBell.drawTube(drawmode);
@@ -711,7 +730,7 @@ void render(mat4& view, GLuint programID)
 						// Send the model uniform and normal matrix to the currently bound shader,
 						glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 						// Recalculate the normal matrix and send to the vertex shader
-						normalmatrix = transpose(inverse(mat3(view * model.top())));
+						normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 						glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 						cube.drawCube(drawmode);
@@ -730,7 +749,7 @@ void render(mat4& view, GLuint programID)
 						// Send the model uniform and normal matrix to the currently bound shader,
 						glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 						// Recalculate the normal matrix and send to the vertex shader
-						normalmatrix = transpose(inverse(mat3(view * model.top())));
+						normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 						glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 						cube.drawCube(drawmode);
@@ -751,7 +770,7 @@ void render(mat4& view, GLuint programID)
 						// Send the model uniform and normal matrix to the currently bound shader,
 						glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 						// Recalculate the normal matrix and send to the vertex shader
-						normalmatrix = transpose(inverse(mat3(view * model.top())));
+						normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 						glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 						motorStator.drawTube(drawmode);
@@ -786,7 +805,7 @@ void render(mat4& view, GLuint programID)
 				// Send the model uniform and normal matrix to the currently bound shader,
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -804,7 +823,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -822,7 +841,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -840,7 +859,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -858,7 +877,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -876,7 +895,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -894,7 +913,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -912,7 +931,7 @@ void render(mat4& view, GLuint programID)
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				/* Draw our cube*/
@@ -949,7 +968,7 @@ void render(mat4& view, GLuint programID)
 				// Send the model uniform and normal matrix to the currently bound shader,
 				glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
+				normalmatrix = transpose(inverse(mat3(/*view */ model.top())));
 				glUniformMatrix3fv(normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 				tree.render(drawmode);
@@ -978,8 +997,18 @@ void renderTerrain(mat4& view, GLuint programID)
 		glUniform1f(terrainTextureThresholdID[i], (i * 1.f) + 0.01f);
 	}
 
+	for (int i = numTerrainTextures; i < numTerrainTextures*2; i++)
+	{
+		glActiveTexture(GL_TEXTURE0 + i);
+		int textureIdx = SAND + i - numTerrainTextures;
+
+		glBindTexture(GL_TEXTURE_2D, roughnessMap[textureIdx]);
+		glUniform1i(terrainRoughnessID[textureIdx], i);
+	}
+
 
 	glUniform1i(useTextureID[programID], 1);
+	glUniform1i(useRoughnessID[programID], 1);
 
 
 	// set the reflectiveness uniform
@@ -994,6 +1023,7 @@ void renderTerrain(mat4& view, GLuint programID)
 
 	terrain->drawObject(drawmode);
 
+	glUniform1i(useRoughnessID[programID], 0);
 	glUniform1i(useTextureID[programID], 0);
 }
 
@@ -1183,9 +1213,9 @@ void display()
 	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
 	glUniformMatrix4fv(lightSpaceMatrixID[TERRAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
-	glActiveTexture(GL_TEXTURE5);
+	glActiveTexture(GL_TEXTURE0 + numTerrainTextures*2);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glUniform1i(shadowMapID[TERRAIN_PROGRAM], 5);
+	glUniform1i(shadowMapID[TERRAIN_PROGRAM], numTerrainTextures * 2);
 
 	renderTerrain(renderView,TERRAIN_PROGRAM);
 

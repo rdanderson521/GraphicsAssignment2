@@ -21,6 +21,9 @@ uniform sampler2D shadowMap;
 uniform sampler2D tex;
 uniform bool useTex;
 
+uniform sampler2D roughness;
+uniform bool useRoughness;
+
 uniform sampler2D normalMap;
 uniform bool useNormalMap;
 
@@ -91,6 +94,8 @@ void main()
 			emissive = vec3(1.0, 1.0, 0.8);
 		}
 	}
+
+
 	outputColor =  vec4((global_ambient * colour.xyz) + emissive , 1.f);
 	for (int i = 0; i < numLights; i++)
 	{
@@ -109,29 +114,29 @@ void main()
 		mat4 mv_matrix = view * model;		// Calculate the model-view transformation
 		vec4 P = view * position_h;	// Modify the vertex position (x, y, z, w) by the model-view transformation
 		vec3 N = normalize(normalMatrix * normal);		// Modify the normals by the normal-matrix (i.e. to model-view (or eye) coordinates )
-		vec3 L = light_pos3;
+		vec3 L = -light_pos3;
+		float distanceToLight = 0;
 		if ( lightMode[i] == 1)
 		{
 			L = light_pos3 - P.xyz;		// Calculate the vector from the light position to the vertex in eye space
+			distanceToLight =  length(L); // For attenuation
 		}
-		float distanceToLight = length(L);	// For attenuation
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (0.8*currentLightColour);
+		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (currentLightColour);
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
 		vec3 R = reflect(-L, N);
 		vec3 specular = vec3(0.f);
-		if (reflectiveness > 0.f)
-		{
-			specular = pow(max(dot(R, V), 0.0), 1/max(reflectiveness,0.0001) ) * specular_albedo * (0.8 + (0.2*currentLightColour));
-		}
+
+		specular = pow(max(dot(R, V), 0.0),16/* 1/max(reflectiveness,0.0001)*/ ) * specular_albedo * (0.8 + (0.2*currentLightColour));
+
 
 		// Calculate the attenuation factor;
 		float attenuation;
-		if (attenuationMode[i] == 0)
+		if (lightMode[i] == 0)
 		{
 			attenuation = 1.f;
 		}

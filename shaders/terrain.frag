@@ -21,6 +21,9 @@ uniform float texThres[4];
 uniform sampler2D tex[4];
 uniform bool useTex;
 
+uniform sampler2D roughness[4];
+uniform bool useRoughness;
+
 uniform sampler2D normalMap;
 uniform bool useNormalMap;
 
@@ -36,7 +39,7 @@ uniform float reflectiveness; // value of 0.01 - 1
 
 
 
-vec3 specular_albedo = vec3(1.0, 0.8, 0.6);
+vec3 specular_albedo = vec3(1., 0.9, 0.8);
 vec3 global_ambient = vec3(0.1, 0.1, 0.1);
 
 float shadowCalculation(vec4 lightSpace)
@@ -61,6 +64,7 @@ void main()
 {
 	vec4 colour;
 
+	int texIdx = 0;
 	if ( useTex)
 	{
 		int i = 3;
@@ -71,10 +75,12 @@ void main()
 
 		if (i >= 0)
 		{
-			colour = texture(tex[i], fIn.texCoord);
+			texIdx = i;
+			colour = texture(tex[texIdx], fIn.texCoord);
 		}
 		else 
 		{
+			texIdx = -1;
 			colour = fIn.vertexColour;
 		}
 	}
@@ -120,15 +126,30 @@ void main()
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(L,N), 0.0) * colour.xyz /* (0.3 * vec3(1.f) + 0.7 *currentLightColour)*/;
+		vec3 diffuse = max(dot(N,L), 0.0) * colour.xyz /* (0.3 * vec3(1.f) + 0.7 *currentLightColour)*/;
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
 		vec3 R = reflect(-L, N);
 		vec3 specular = vec3(0.f);
-		if (reflectiveness > 0.f)
+
+		float shinyness = 0.f;
+		if (useRoughness && texIdx != -1)
 		{
-			specular = pow(max(dot(R, V), 0.0), 1/max(reflectiveness,0.0001) ) * specular_albedo * (0.8 + (0.2*currentLightColour));
+			float roughnessVal = texture(roughness[texIdx], fIn.texCoord).r;
+			if (roughnessVal < 0.3)
+			{
+				shinyness = 1500.f/(500.f * roughnessVal + 0.01f);
+			}
+		}
+		else 
+		{
+			shinyness = reflectiveness;
+		}
+
+		if (shinyness != 0)
+		{
+			specular = 0.5 * pow(max(dot(R, V), 0.0),shinyness) * specular_albedo;
 		}
 
 		// Calculate the attenuation factor;
