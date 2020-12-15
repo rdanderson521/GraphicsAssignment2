@@ -22,10 +22,12 @@ public:
 	GLuint positionBufferObject;
 	GLuint colourObject;
 	GLuint normalsBufferObject;
+	GLuint textureBufferObject;
 
 	GLuint attribute_v_coord;
 	GLuint attribute_v_normal;
 	GLuint attribute_v_colours;
+	GLuint attribute_v_textures;
 
 	int numvertices;
 

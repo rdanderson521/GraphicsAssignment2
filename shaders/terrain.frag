@@ -126,7 +126,7 @@ void main()
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N,L), 0.0) * colour.xyz /* (0.3 * vec3(1.f) + 0.7 *currentLightColour)*/;
+		vec3 diffuse = max(dot(N,L), 0.0) * colour.xyz;
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
@@ -134,13 +134,15 @@ void main()
 		vec3 specular = vec3(0.f);
 
 		float shinyness = 0.f;
+		float specularMultiplier = 0.2f;
 		if (useRoughness && texIdx != -1)
 		{
-			float roughnessVal = texture(roughness[texIdx], fIn.texCoord).r;
-			if (roughnessVal < 0.3)
-			{
-				shinyness = 1500.f/(500.f * roughnessVal + 0.01f);
-			}
+			float roughnessVal =  texture(roughness[texIdx], fIn.texCoord).r;
+
+			 // use min to set max shinyness of 150 as sharp reflections look unrealistic on ground terrain
+			shinyness = min(250.f/(2000.f * roughnessVal * roughnessVal + 0.01f), 150);
+
+			specularMultiplier = specularMultiplier * (1.0 - roughnessVal);
 		}
 		else 
 		{
@@ -149,7 +151,7 @@ void main()
 
 		if (shinyness != 0)
 		{
-			specular = 0.5 * pow(max(dot(R, V), 0.0),shinyness) * specular_albedo;
+			specular = specularMultiplier * pow(max(dot(R, V), 0.0),shinyness) * currentLightColour;
 		}
 
 		// Calculate the attenuation factor;

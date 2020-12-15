@@ -124,7 +124,7 @@ void main()
 		L = normalize(L);					// Normalise our light vector
 
 		// Calculate the diffuse component
-		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (currentLightColour);
+		vec3 diffuse = max(dot(N, L), 0.0) * colour.xyz * (0.3 * vec3(1.f) + 0.7 * currentLightColour);
 
 		// Calculate the specular component using Phong specular reflection
 		vec3 V = normalize(viewPos - P.xyz);	
@@ -132,13 +132,13 @@ void main()
 		vec3 specular = vec3(0.f);
 
 		float shinyness = 0.f;
+		float specularMultiplier = 0.5f;
 		if (useRoughness)
 		{
 			float roughnessVal = texture(roughness, fIn.texCoord).r;
-			//if (roughnessVal < 0.3)
-			{
-				shinyness = 1500.f/(500.f * roughnessVal + 0.01f);
-			}
+			shinyness = 1500.f/(500.f * roughnessVal * roughnessVal + 0.01f);
+
+			specularMultiplier = specularMultiplier * (1.0 - roughnessVal);
 		}
 		else 
 		{
@@ -147,7 +147,7 @@ void main()
 
 		if (shinyness != 0)
 		{
-			specular = 0.5 * pow(max(dot(R, V), 0.0),shinyness) * specular_albedo;
+			specular = specularMultiplier * pow(max(dot(R, V), 0.0),shinyness) * specular_albedo;
 		}
 
 
