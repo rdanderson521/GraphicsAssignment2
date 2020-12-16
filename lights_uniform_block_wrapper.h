@@ -19,10 +19,14 @@ public:
 	void bind(GLuint bindingPoint);
 
 private:
-	glm::vec3 lightPos[MAX_LIGHTS];
+	// this is padding to be added after each element of lightMode to 
+	const glm::vec3 padding = glm::vec3(0.f);
+
+	// using vec4 insteam of vec3 as layout std140 requires padding in arays to get each object up to 16bytes
+	glm::vec4 lightPos[MAX_LIGHTS];
 	glm::uint lightMode[MAX_LIGHTS];
-	glm::vec3 lightColour[MAX_LIGHTS];
-	glm::vec3 attenuationParams[MAX_LIGHTS];
+	glm::vec4 lightColour[MAX_LIGHTS];
+	glm::vec4 attenuationParams[MAX_LIGHTS];
 	glm::uint numLights;
 
 	GLuint uniformBuffer;

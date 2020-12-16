@@ -3,6 +3,8 @@
 
 #version 420 core
 
+#define MAX_LIGHTS 20
+
 in VERTEX_OUT
 {
 	vec3 pos;
@@ -27,13 +29,13 @@ uniform bool useTex;
 uniform sampler2D roughness[4];
 uniform bool useRoughness;
 
-layout (std140) uniform lightParams	{
-	vec3 lightPos[20];
-	uint lightMode[20];
-	vec3 lightColour[20];
-	vec3 attenuationParams[20];
+layout (std140) uniform LightParams{
+	vec3 lightPos[MAX_LIGHTS];
+	uint lightMode[MAX_LIGHTS];
+	vec3 lightColour[MAX_LIGHTS];
+	vec3 attenuationParams[MAX_LIGHTS];
 	uint numLights;
-};
+} lights;
 
 //uniform vec4 lightPos[100];
 //uniform vec3 lightColour[100];
@@ -95,22 +97,16 @@ void main()
 	}
 
 	vec3 normal = fIn.normal;
-//	if (useNormalMap)
-//	{
-//		normal = texture(normalMap, fIn.texCoord).rgb;
-//
-//		normal = normalize(normal * 2.0 - 1.0); 
-//	}
 
 
 	outputColor =  vec4((global_ambient * colour.xyz)  , 1.f);
-	for (int i = 0; i < numLights; i++)
+	for (int i = 0; i < lights.numLights; i++)
 	{
 		vec4 position_h = vec4(fIn.pos, 1.0);
-		vec3 light_pos3 = lightPos[i].xyz;		
+		vec3 light_pos3 = lights.lightPos[i].xyz;		
 		
-		vec3 currentLightColour = lightColour[i];
-		if (lightColour[i] == vec3(0.f))
+		vec3 currentLightColour = lights.lightColour[i];
+		if (lights.lightColour[i] == vec3(0.f))
 		{
 			currentLightColour = vec3(1.0f);
 		}
@@ -123,7 +119,7 @@ void main()
 		vec3 N = normalize(normalMatrix * normal);		// Modify the normals by the normal-matrix (i.e. to model-view (or eye) coordinates )
 		vec3 L = -light_pos3;
 		float distanceToLight = 0;
-		if ( lightMode[i] == 1)
+		if ( lights.lightMode[i] == 1)
 		{
 			L = light_pos3 - P.xyz;		// Calculate the vector from the light position to the vertex in eye space
 			distanceToLight = length(L); // For attenuation
@@ -161,27 +157,23 @@ void main()
 
 		// Calculate the attenuation factor;
 		float attenuation;
-		if (lightMode[i] == 0)
+		if (lights.lightMode[i] == 0)
 		{
 			attenuation = 1.f;
 		}
 		else
 		{
-			// Define attenuation constants. These could be uniforms for greater flexibility
-			float attenuation_k1 = 0.5;
-			float attenuation_k2 = 0.2;
-			float attenuation_k3 = 0.8; 
-			attenuation = 1.0 / (attenuation_k1 + attenuation_k2*distanceToLight + 
-									   attenuation_k3 * pow(distanceToLight, 2));
+			attenuation = 1.0 / (lights.attenuationParams[i].x + lights.attenuationParams[i].y*distanceToLight + 
+									   lights.attenuationParams[i].z * pow(distanceToLight, 2));
 		}
 
 		// calculate shadow value
 		float shadow = 0.f;
-		if (lightMode[i] == 0)
+		if (lights.lightMode[i] == 0)
 		{
 			shadow = shadowCalculation(fIn.FragPosLightSpace);
 		}
 
-		outputColor +=  vec4(1.f * (ambient + ((1.0 - shadow) * (specular + diffuse))), 1.0);
+		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse))), 1.0);
 	}
 }

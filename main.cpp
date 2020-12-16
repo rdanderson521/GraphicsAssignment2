@@ -93,7 +93,7 @@ LightsUniformWrapper lightsUniformBlock;
 
 enum UniformBinding 
 {
-	LIGHT_PARAMS_BINDING
+	LIGHT_PARAMS_BINDING = 0
 };
 
 enum LightMode {
@@ -299,7 +299,7 @@ void init(GLWrapper* glw)
 			}
 			numLightsID[i] = glGetUniformLocation(programs[i], "numLights");*/
 
-			lightParamsID[i] = glGetUniformBlockIndex(programs[i], "lightParams");
+			lightParamsID[i] = glGetUniformBlockIndex(programs[i], "LightParams");
 			glUniformBlockBinding(programs[i], lightParamsID[i], LIGHT_PARAMS_BINDING);
 
 
@@ -476,10 +476,6 @@ void render(mat4& view, GLuint programID)
 	// This block of code draws the drone
 	model.push(model.top());
 	{
-		// Define the global model transformations (rotate and scale). Note, we're not modifying thel ight source position
-		//model.top() = rotate(model.top(), -radians(angle_x), glm::vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-		//model.top() = rotate(model.top(), -radians(angle_y), glm::vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-		//model.top() = rotate(model.top(), -radians(angle_z), glm::vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
 		model.top() = translate(model.top(), vec3(x, y, z)); // translating xyz
 
 		// rotates the model after transforming it so these transformations do not affect the translation
@@ -511,13 +507,8 @@ void render(mat4& view, GLuint programID)
 					else
 						lightColour = vec3(0.1f, 0.6f, 0.1f);
 
-					lightsUniformBlock.addLight(lightPos, LightMode::OMNI_DIRECTIONAL, lightColour, vec3(0.5f, 0.3f, 0.5f));
+					lightsUniformBlock.addLight(lightPos, LightMode::OMNI_DIRECTIONAL, lightColour, vec3(0.4f, 0.2f, 0.8f));
 
-					//glUniform4fv(lightPosID[programID][numLights], 1, &lightPos[0]);
-					//glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
-					//glUniform1ui(lightModeID[programID][numLights], 1);
-					//glUniform1ui(attenuationModeID[programID][numLights], 0);
-					//glUniform1ui(numLightsID[programID], ++numLights);
 
 					// Recalculate the normal matrix and send the model and normal matrices to the vertex shader																							// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																						// Recalculate the normal matrix and send to the vertex shader
 					glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
@@ -1093,14 +1084,14 @@ void display()
 	// Define the normal matrix
 	mat3 normalmatrix;
 
-	// Projection matrix : 60° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+	// Projection matrix
 	mat4 renderProjection;
 
 	// Camera matrix
 	mat4 renderView;
 
 
-	renderProjection = perspective(radians(75.f), aspect_ratio, 0.1f, 20.f);
+	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, 15.f);
 
 	if (controlMode == 1)
 	{
@@ -1121,17 +1112,17 @@ void display()
 			temp = 0;
 
 		renderView = lookAt(
-			vec3(0, 7, 0), // Camera is at (0,0,4), in World Space
-			vec3(x, y, z), // and looks at the origin
-			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+			vec3(0, 6, 0), 
+			vec3(x, y, z), 
+			vec3(0, 1, 0)  
 		);
 	}
 
 	vec3 lightDirNormalised = normalize(directionalLightDir);
 
 	mat4 shadowView = glm::lookAt(
-		-directionalLightDir,
 		vec3(0.f, 0.f, 0.f),
+		directionalLightDir,
 		vec3(0.0f, 1.0f, 0.0f));
 
 	mat3 lightVectors = shadowView;
@@ -1147,11 +1138,11 @@ void display()
 	cubeNDC.push_back(vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	cubeNDC.push_back(vec4(-1.0f, 1.0f, 1.0f, 1.0f));
 
-	mat4 viewProjectionMatrixInverse = inverse(renderProjection * renderView);
+	mat4 renderViewProjectionToLightSPace = shadowView * inverse(renderProjection * renderView) ;
 
 	vector <vec4> cameraFrustum;
 	for (vec4 vertex : cubeNDC) {
-		vec4 vertexTransformed = viewProjectionMatrixInverse * vertex;
+		vec4 vertexTransformed = renderViewProjectionToLightSPace * vertex;
 		vertexTransformed /= vertexTransformed.w;
 		cameraFrustum.push_back(vertexTransformed);
 	}
@@ -1164,13 +1155,13 @@ void display()
 		{
 			if (first)
 			{
-				minBound[i] = maxBound[i] = dot(vertex, lightVectors[i]);
+				minBound[i] = maxBound[i] = vertex[i];
 				first = false;
 			}
 			else
 			{
-				minBound[i] = std::min(minBound[i], dot(vertex, lightVectors[i]));
-				maxBound[i] = std::max(maxBound[i], dot(vertex, lightVectors[i]));
+				minBound[i] = std::min(minBound[i], vertex[i]);
+				maxBound[i] = std::max(maxBound[i], vertex[i]);
 			}
 		}
 	}
@@ -1183,12 +1174,15 @@ void display()
 
 	resetLights();
 
-	vec3 bounds = maxBound - minBound;
 
-	mat4 shadowProjection = ortho(-0.5f * bounds.x, 0.5f * bounds.x, -0.5f * bounds.y, 0.5f * bounds.y, -10.f, bounds.z);
+	mat4 shadowProjection = ortho(minBound.x, maxBound.x, minBound.y, maxBound.y, -maxBound.z - 5,  -minBound.z );
 
+	//shadowView = lookAt(vec3(0.f), directionalLightDir, vec3(0.f, 1.f, 0.f));
 
 	mat4 lightSpace = shadowProjection * shadowView;
+
+	//renderView = shadowView;
+	//renderProjection = shadowProjection;
 
 
 	glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
