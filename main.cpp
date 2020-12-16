@@ -31,6 +31,8 @@ if you prefer */
 
 #include "texture_loader.h"
 
+#include "lights_uniform_block_wrapper.h"
+
 /* Define buffer object indices */
 GLuint elementbuffer;
 
@@ -81,19 +83,33 @@ const int maxNumLights = 100;
 /* Uniforms*/
 GLuint modelID[NUM_PROGRAMS], viewID[NUM_PROGRAMS], projectionID[NUM_PROGRAMS], normalMatrixID[NUM_PROGRAMS], viewPosID[NUM_PROGRAMS];
 GLuint colourModeID[NUM_PROGRAMS], emitModeID[NUM_PROGRAMS];
-GLuint colourOverrideID[NUM_PROGRAMS], reflectivenessID[NUM_PROGRAMS], numLightsID[NUM_PROGRAMS];
+GLuint colourOverrideID[NUM_PROGRAMS], reflectivenessID[NUM_PROGRAMS];
 GLuint lightSpaceMatrixID[NUM_PROGRAMS], shadowMapID[NUM_PROGRAMS];
 GLuint textureID[NUM_PROGRAMS], terrainTextureID[numTerrainTextures], terrainTextureThresholdID[numTerrainTextures], useTextureID[NUM_PROGRAMS];
 GLuint roughnessID[NUM_PROGRAMS], terrainRoughnessID[numTerrainTextures], useRoughnessID[NUM_PROGRAMS];
-GLuint lightPosID[NUM_PROGRAMS][maxNumLights];
-GLuint lightColourID[NUM_PROGRAMS][maxNumLights];
-GLuint lightModeID[NUM_PROGRAMS][maxNumLights];
-GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
-GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
+GLuint lightParamsID[NUM_PROGRAMS];
+
+LightsUniformWrapper lightsUniformBlock;
+
+enum UniformBinding 
+{
+	LIGHT_PARAMS_BINDING
+};
+
+enum LightMode {
+	DIRECTIONAL,
+	OMNI_DIRECTIONAL
+};
+//GLuint lightPosID[NUM_PROGRAMS][maxNumLights];
+//GLuint lightColourID[NUM_PROGRAMS][maxNumLights];
+//GLuint lightModeID[NUM_PROGRAMS][maxNumLights];
+//GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
+//GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
+//GLuint numLightsID[NUM_PROGRAMS];
 
 
 vec3 directionalLightDir = vec3(1.f, -2.f, 2.f);
-int numLights;
+//int numLights;
 
 
 int controlMode;
@@ -155,7 +171,6 @@ void init(GLWrapper* glw)
 	emitmode = 0;
 	attenuationmode = 1; // Attenuation is on by default
 	motorAngle = 0;
-	numLights = 0;
 	controlMode = 2;
 
 	//control mode 2 defaults
@@ -174,6 +189,8 @@ void init(GLWrapper* glw)
 	y = 0;
 	z = 4;
 	lightsOn = true;
+
+	lightsUniformBlock.resetLights();
 
 
 	/* Load and build the vertex and fragment shaders */
@@ -264,7 +281,9 @@ void init(GLWrapper* glw)
 			viewID[i] = glGetUniformLocation(programs[i], "view");
 			projectionID[i] = glGetUniformLocation(programs[i], "projection");
 			normalMatrixID[i] = glGetUniformLocation(programs[i], "normalMatrix");
-			for (int j = 0; j < maxNumLights; j++)
+
+
+			/*for (int j = 0; j < maxNumLights; j++)
 			{
 				std::string str = "lightPos[" + std::to_string(j) + "]";
 				lightPosID[i][j] = glGetUniformLocation(programs[i], str.c_str());
@@ -278,7 +297,12 @@ void init(GLWrapper* glw)
 				str = "attenuationMode[" + std::to_string(j) + "]";
 				attenuationModeID[i][j] = glGetUniformLocation(programs[i], str.c_str());
 			}
-			numLightsID[i] = glGetUniformLocation(programs[i], "numLights");
+			numLightsID[i] = glGetUniformLocation(programs[i], "numLights");*/
+
+			lightParamsID[i] = glGetUniformBlockIndex(programs[i], "lightParams");
+			glUniformBlockBinding(programs[i], lightParamsID[i], LIGHT_PARAMS_BINDING);
+
+
 			viewPosID[i] = glGetUniformLocation(programs[i], "viewPos");
 			colourOverrideID[i] = glGetUniformLocation(programs[i], "colourOverride");
 			reflectivenessID[i] = glGetUniformLocation(programs[i], "reflectiveness");
@@ -486,11 +510,14 @@ void render(mat4& view, GLuint programID)
 						lightColour = vec3(0.6f, 0.1f, 0.1f);
 					else
 						lightColour = vec3(0.1f, 0.6f, 0.1f);
-					glUniform4fv(lightPosID[programID][numLights], 1, &lightPos[0]);
-					glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
-					glUniform1ui(lightModeID[programID][numLights], 1);
-					glUniform1ui(attenuationModeID[programID][numLights], 0);
-					glUniform1ui(numLightsID[programID], ++numLights);
+
+					lightsUniformBlock.addLight(lightPos, LightMode::OMNI_DIRECTIONAL, lightColour, vec3(0.5f, 0.3f, 0.5f));
+
+					//glUniform4fv(lightPosID[programID][numLights], 1, &lightPos[0]);
+					//glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
+					//glUniform1ui(lightModeID[programID][numLights], 1);
+					//glUniform1ui(attenuationModeID[programID][numLights], 0);
+					//glUniform1ui(numLightsID[programID], ++numLights);
 
 					// Recalculate the normal matrix and send the model and normal matrices to the vertex shader																							// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																								// Recalculate the normal matrix and send to the vertex shader																						// Recalculate the normal matrix and send to the vertex shader
 					glUniformMatrix4fv(modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
@@ -507,6 +534,8 @@ void render(mat4& view, GLuint programID)
 				model.pop();
 			}
 		}
+		
+		lightsUniformBlock.bind(LIGHT_PARAMS_BINDING);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture[CARBON]);
@@ -1049,28 +1078,12 @@ void renderTerrain(mat4& view, GLuint programID)
 
 void resetLights()
 {
-	numLights = 0;
-	vec4 temp(0.f);
-	for (int i = 0; i < NUM_PROGRAMS; i++)
-	{
-		for (int j = 0; j < maxNumLights; j++)
-		{
-			glUniform4fv(lightPosID[i][numLights], 1, &temp[0]);
-			glUniform3fv(lightColourID[i][numLights], 1, &temp[0]);
-		}
-		glUniform1ui(numLightsID[i], 0);
-	}
-	
+	lightsUniformBlock.resetLights();
 }
 
 void setDirectionalLightUniforms(GLuint programID)
 {
-	vec3 lightColour = vec3(1.f);
-	glUniform4fv(lightPosID[programID][numLights], 1, &directionalLightDir[0]);
-	glUniform1ui(lightModeID[programID][numLights], 0);
-	glUniform3fv(lightColourID[programID][numLights], 1, &lightColour[0]);
-	glUniform1ui(attenuationModeID[programID][numLights], 0);
-	glUniform1ui(numLightsID[programID], ++numLights);
+	lightsUniformBlock.addLight(directionalLightDir, LightMode::DIRECTIONAL);
 }
 
 /* Called to update the display. Note that this function is called in the event loop in the wrapper

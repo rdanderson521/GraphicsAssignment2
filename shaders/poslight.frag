@@ -14,8 +14,10 @@ in VERTEX_OUT
 
 out vec4 outputColor;
 
-
 uniform vec3 viewPos;
+uniform mat4 model, view, projection;
+uniform mat3 normalMatrix;
+
 uniform sampler2D shadowMap;
 
 uniform sampler2D tex;
@@ -24,20 +26,24 @@ uniform bool useTex;
 uniform sampler2D roughness;
 uniform bool useRoughness;
 
-uniform sampler2D normalMap;
-uniform bool useNormalMap;
-
-
-uniform mat4 model, view, projection;
-uniform mat3 normalMatrix;
-
 uniform uint emitMode;
 uniform vec3 emitColour;
-uniform vec4 lightPos[100];
-uniform vec3 lightColour[100];
-uniform uint lightMode[100];
-uniform uint attenuationMode[100];
-uniform uint numLights;
+
+layout (std140) uniform lightParams	{
+	vec3 lightPos[20];
+	vec3 lightColour[20];
+	vec3 attenuationParams[20];
+	uint lightMode[20];
+	uint attenuationMode[20];
+	uint numLights;
+};
+
+
+//uniform vec4 lightPos[100];
+//uniform vec3 lightColour[100];
+//uniform uint lightMode[100];
+//uniform uint attenuationMode[100];
+//uniform uint numLights;
 uniform float reflectiveness; // value of 0.01 - 1
 
 
@@ -75,12 +81,6 @@ void main()
 	}
 
 	vec3 normal = fIn.normal;
-//	if (useNormalMap)
-//	{
-//		normal = texture(normalMap, fIn.texCoord).rgb;
-//
-//		normal = normalize(normal * 2.0 - 1.0); 
-//	}
 
 	vec3 emissive = vec3(0); // emmissive light component
 	if (emitMode == 1)

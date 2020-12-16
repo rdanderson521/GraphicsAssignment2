@@ -15,6 +15,9 @@ in VERTEX_OUT
 out vec4 outputColor;
 
 uniform vec3 viewPos;
+uniform mat4 model, view, projection;
+uniform mat3 normalMatrix;
+
 uniform sampler2D shadowMap;
 
 uniform float texThres[4];
@@ -24,17 +27,19 @@ uniform bool useTex;
 uniform sampler2D roughness[4];
 uniform bool useRoughness;
 
-uniform sampler2D normalMap;
-uniform bool useNormalMap;
+layout (std140) uniform lightParams	{
+	vec3 lightPos[20];
+	uint lightMode[20];
+	vec3 lightColour[20];
+	vec3 attenuationParams[20];
+	uint numLights;
+};
 
-uniform mat4 model, view, projection;
-uniform mat3 normalMatrix;
-
-uniform vec4 lightPos[100];
-uniform vec3 lightColour[100];
-uniform uint lightMode[100];
-uniform uint attenuationMode[100];
-uniform uint numLights;
+//uniform vec4 lightPos[100];
+//uniform vec3 lightColour[100];
+//uniform uint lightMode[100];
+//uniform uint attenuationMode[100];
+//uniform uint numLights;
 uniform float reflectiveness; // value of 0.01 - 1
 
 

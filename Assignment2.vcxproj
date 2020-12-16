@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="cubev2.h" />
     <ClInclude Include="cylinder.h" />
+    <ClInclude Include="lights_uniform_block_wrapper.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="terrain_object.h" />
     <ClInclude Include="texture_loader.h" />
@@ -164,6 +165,7 @@
     <ClCompile Include="..\..\common\wrapper_glfw.cpp" />
     <ClCompile Include="cubev2.cpp" />
     <ClCompile Include="cylinder.cpp" />
+    <ClCompile Include="lights_uniform_block_wrapper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="terrain_object.cpp" />
     <ClCompile Include="texture_loader.cpp" />
