@@ -65,5 +65,5 @@ glm::mat4 DirectionalLight::genLightProjView(glm::mat4 view, glm::mat4 proj)
 
 bool DirectionalLight::setUniforms(LightsUniformWrapper& uniform)
 {
-	return uniform.addLight(this->dir, LightMode::DIRECTIONAL);
+	return uniform.addLight(this->dir, LightMode::DIRECTIONAL, this->lightSpace);
 }

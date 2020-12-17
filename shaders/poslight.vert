@@ -27,10 +27,19 @@ out VERTEX_OUT
 
 
 // These are the uniforms that are defined in the application
+
+layout (std140) uniform lightParams	{
+	vec3 lightPos[MAX_LIGHTS];
+	uint lightMode[MAX_LIGHTS];
+	mat4 lightSpace[MAX_LIGHTS];
+	vec3 lightColour[MAX_LIGHTS];
+	vec3 attenuationParams[MAX_LIGHTS];
+	uint numLights;
+} lights;
+
 uniform mat4 model, view, projection;
 uniform uint colourMode;
 uniform vec4 colourOverride;
-uniform mat4 lightSpaceMatrix;
 
 void main()
 {
@@ -44,7 +53,10 @@ void main()
 	}
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
-	vOut.FragPosLightSpace[0] = lightSpaceMatrix * vec4(vOut.pos,1.f);
+	for (int i = 0; i < lights.numLights; i++)
+	{
+		vOut.FragPosLightSpace[i] = lights.lightSpace[i] * vec4(vOut.pos,1.f);
+	}
 	vOut.texCoord = texCoord;
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);

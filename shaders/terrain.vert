@@ -5,6 +5,8 @@
 // Specify minimum OpenGL version
 #version 420 core
 
+#define MAX_LIGHTS 20
+
 // Define the vertex attributes
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 colour;
@@ -19,22 +21,32 @@ out VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 FragPosLightSpace;
+	vec4 fragPosLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
 } vOut;
 
 
+layout (std140) uniform lightParams	{
+	vec3 lightPos[MAX_LIGHTS];
+	uint lightMode[MAX_LIGHTS];
+	mat4 lightSpace[MAX_LIGHTS];
+	vec3 lightColour[MAX_LIGHTS];
+	vec3 attenuationParams[MAX_LIGHTS];
+	uint numLights;
+} lights;
 
-// These are the uniforms that are defined in the application
+
 uniform mat4 model, view, projection;
-uniform mat4 lightSpaceMatrix;
 
 void main()
 {
 	vOut.vertexColour = vec4(colour,1.0);
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
-	vOut.FragPosLightSpace = lightSpaceMatrix * vec4(vOut.pos,1.f);
+	for (int i = 0; i < lights.numLights; i++)
+	{
+		vOut.fragPosLightSpace[i] = lights.lightSpace[i] * vec4(vOut.pos,1.f);
+	}
 	vOut.texCoord = vec2(position.x,position.z);
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);

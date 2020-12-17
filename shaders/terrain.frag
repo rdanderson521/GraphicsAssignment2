@@ -10,11 +10,20 @@ in VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 FragPosLightSpace;
+	vec4 fragPosLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
 } fIn;
 
 out vec4 outputColor;
+
+layout (std140) uniform lightParams	{
+	vec3 lightPos[MAX_LIGHTS];
+	uint lightMode[MAX_LIGHTS];
+	mat4 lightSpace[MAX_LIGHTS];
+	vec3 lightColour[MAX_LIGHTS];
+	vec3 attenuationParams[MAX_LIGHTS];
+	uint numLights;
+} lights;
 
 uniform vec3 viewPos;
 uniform mat4 model, view, projection;
@@ -29,23 +38,7 @@ uniform bool useTex;
 uniform sampler2D roughness[4];
 uniform bool useRoughness;
 
-layout (std140) uniform LightParams{
-	vec3 lightPos[MAX_LIGHTS];
-	uint lightMode[MAX_LIGHTS];
-	vec3 lightColour[MAX_LIGHTS];
-	vec3 attenuationParams[MAX_LIGHTS];
-	//mat4 lightSpaceMatrix[MAX_LIGHTS];
-	uint numLights;
-} lights;
-
-//uniform vec4 lightPos[100];
-//uniform vec3 lightColour[100];
-//uniform uint lightMode[100];
-//uniform uint attenuationMode[100];
-//uniform uint numLights;
 uniform float reflectiveness; // value of 0.01 - 1
-
-
 
 vec3 specular_albedo = vec3(1., 0.9, 0.8);
 vec3 global_ambient = vec3(0.1, 0.1, 0.1);
@@ -172,7 +165,7 @@ void main()
 		float shadow = 0.f;
 		if (lights.lightMode[i] == 0)
 		{
-			shadow = shadowCalculation(fIn.FragPosLightSpace);
+			shadow = shadowCalculation(fIn.fragPosLightSpace[i]);
 		}
 
 		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse))), 1.0);

@@ -87,7 +87,7 @@ const int maxNumLights = 100;
 GLuint modelID[NUM_PROGRAMS], viewID[NUM_PROGRAMS], projectionID[NUM_PROGRAMS], normalMatrixID[NUM_PROGRAMS], viewPosID[NUM_PROGRAMS];
 GLuint colourModeID[NUM_PROGRAMS], emitModeID[NUM_PROGRAMS];
 GLuint colourOverrideID[NUM_PROGRAMS], reflectivenessID[NUM_PROGRAMS];
-GLuint lightSpaceMatrixID[NUM_PROGRAMS], shadowMapID[NUM_PROGRAMS];
+GLuint shadowMapID[NUM_PROGRAMS], lightSpaceMatrixID[NUM_PROGRAMS];
 GLuint textureID[NUM_PROGRAMS], terrainTextureID[numTerrainTextures], terrainTextureThresholdID[numTerrainTextures], useTextureID[NUM_PROGRAMS];
 GLuint roughnessID[NUM_PROGRAMS], terrainRoughnessID[numTerrainTextures], useRoughnessID[NUM_PROGRAMS];
 GLuint lightParamsID[NUM_PROGRAMS];
@@ -276,7 +276,6 @@ void init(GLWrapperV2* glw)
 	for (int i = 0; i < NUM_PROGRAMS; i++)
 	{
 		modelID[i] = glGetUniformLocation(programs[i], "model");
-		lightSpaceMatrixID[i] = glGetUniformLocation(programs[i], "lightSpaceMatrix");
 
 		if (i != SHADOW_PROGRAM)
 		{
@@ -315,6 +314,10 @@ void init(GLWrapperV2* glw)
 					terrainRoughnessID[j] = glGetUniformLocation(programs[i], str.c_str());
 				}
 			}
+		}
+		else
+		{
+			lightSpaceMatrixID[i] = glGetUniformLocation(programs[i], "lightSpaceMatrix");
 		}
 	}
 
@@ -1112,9 +1115,8 @@ void display()
 	resetLights();
 
 	mat4 lightSpace = directionalLight.genLightProjView(renderView,renderProjection);
-
-
 	glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
+
 	glEnable(GL_DEPTH_CLAMP);
 	render(renderView,SHADOW_PROGRAM);
 	renderTerrain(renderView,SHADOW_PROGRAM);
@@ -1140,7 +1142,8 @@ void display()
 	/* Make the compiled shader program current */
 	glUseProgram(programs[MAIN_PROGRAM]);
 
-	resetLights();
+	//resetLights();
+	lightsUniformBlock.resetLights();
 	directionalLight.setUniforms(lightsUniformBlock);
 
 	// Send our projection and view uniforms to the currently bound shader
@@ -1148,7 +1151,7 @@ void display()
 	glUniform1ui(colourModeID[MAIN_PROGRAM], colourmode);
 	glUniformMatrix4fv(viewID[MAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
 	glUniformMatrix4fv(projectionID[MAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
-	glUniformMatrix4fv(lightSpaceMatrixID[MAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
+	//glUniformMatrix4fv(lightSpaceMatrixID[MAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 	
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -1168,7 +1171,7 @@ void display()
 	glUniform1ui(colourModeID[TERRAIN_PROGRAM], colourmode);
 	glUniformMatrix4fv(viewID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
 	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
-	glUniformMatrix4fv(lightSpaceMatrixID[TERRAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
+	//glUniformMatrix4fv(lightSpaceMatrixID[TERRAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
 	glActiveTexture(GL_TEXTURE0 + numTerrainTextures*2);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -1180,7 +1183,6 @@ void display()
 	glUseProgram(0);
 
 	/* Modify our animation variables */
-	
 
 	GLfloat minmaxXZ = 9.5f;
 	GLfloat maxY = 15.f;

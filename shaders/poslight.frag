@@ -34,6 +34,7 @@ uniform vec3 emitColour;
 layout (std140) uniform lightParams	{
 	vec3 lightPos[MAX_LIGHTS];
 	uint lightMode[MAX_LIGHTS];
+	mat4 lightSpace[MAX_LIGHTS];
 	vec3 lightColour[MAX_LIGHTS];
 	vec3 attenuationParams[MAX_LIGHTS];
 	uint numLights;
@@ -163,7 +164,7 @@ void main()
 		float shadow = 0.f;
 		if (lights.lightMode[i] == 0)
 		{
-			shadow = shadowCalculation(fIn.FragPosLightSpace[0]);
+			shadow = shadowCalculation(fIn.FragPosLightSpace[i]);
 		}
 
 		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse)) ), 1.0);
