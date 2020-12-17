@@ -1,9 +1,10 @@
-// Vertex shader demonstrating a positional light
-// source with attenuation
-// Iain Martin 2018
+//vertex shader for lighting and texturing
+//Ryan Anderson 2020
 
 // Specify minimum OpenGL version
 #version 420 core
+
+#define MAX_LIGHTS 20
 
 // Define the vertex attributes
 layout(location = 0) in vec3 position;
@@ -19,7 +20,7 @@ out VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 FragPosLightSpace;
+	vec4 FragPosLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
 } vOut;
 
@@ -43,7 +44,7 @@ void main()
 	}
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
-	vOut.FragPosLightSpace = lightSpaceMatrix * vec4(vOut.pos,1.f);
+	vOut.FragPosLightSpace[0] = lightSpaceMatrix * vec4(vOut.pos,1.f);
 	vOut.texCoord = texCoord;
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);

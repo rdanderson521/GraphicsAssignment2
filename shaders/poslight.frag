@@ -1,5 +1,5 @@
-// Minimal fragment shader
-// Iain Martin 2018
+//fragment shader with point and directional lighting with shadows and textures
+//Ryan Anderson 2020
 
 #version 420 core
 
@@ -10,7 +10,7 @@ in VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 FragPosLightSpace;
+	vec4 FragPosLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
 } fIn;
 
@@ -39,12 +39,6 @@ layout (std140) uniform lightParams	{
 	uint numLights;
 } lights;
 
-
-//uniform vec4 lightPos[100];
-//uniform vec3 lightColour[100];
-//uniform uint lightMode[100];
-//uniform uint attenuationMode[100];
-//uniform uint numLights;
 uniform float reflectiveness; // value of 0.01 - 1
 
 
@@ -169,7 +163,7 @@ void main()
 		float shadow = 0.f;
 		if (lights.lightMode[i] == 0)
 		{
-			shadow = shadowCalculation(fIn.FragPosLightSpace);
+			shadow = shadowCalculation(fIn.FragPosLightSpace[0]);
 		}
 
 		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse)) ), 1.0);

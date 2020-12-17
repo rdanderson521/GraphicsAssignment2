@@ -12,7 +12,7 @@ if you prefer */
 
 /* Include the header to the GLFW wrapper class which
    also includes the OpenGL extension initialisation*/
-#include "wrapper_glfw.h"
+#include "wrapper_glfwv2.h"
 #include <iostream>
 #include <stack>
 #include <chrono>
@@ -29,6 +29,8 @@ if you prefer */
 #include "tree.h"
 #include "terrain_object.h"
 
+#include "directional_light.h"
+
 #include "texture_loader.h"
 
 #include "lights_uniform_block_wrapper.h"
@@ -41,6 +43,7 @@ enum programID
 	MAIN_PROGRAM,
 	TERRAIN_PROGRAM,
 	SHADOW_PROGRAM,
+	OMNI_SHADOW_PROGRAM,
 	NUM_PROGRAMS
 };
 
@@ -53,7 +56,7 @@ GLuint vao;			/* Vertex array (Containor) object. This is the index of the VAO t
 //GLuint shadowProgram;	// shader program for shadow rendering
 GLuint depthMapFBO; // depth map for shadows
 GLuint depthMap; // idx for texture for shadow map
-const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
+const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 //GLuint shadowsModelID, shadowsLightSpaceMatrixID;
 
 GLuint colourmode;	/* Index of a uniform to switch the colour mode in the vertex shader
@@ -91,25 +94,13 @@ GLuint lightParamsID[NUM_PROGRAMS];
 
 LightsUniformWrapper lightsUniformBlock;
 
+DirectionalLight directionalLight;
+
 enum UniformBinding 
 {
 	LIGHT_PARAMS_BINDING = 0
 };
 
-enum LightMode {
-	DIRECTIONAL,
-	OMNI_DIRECTIONAL
-};
-//GLuint lightPosID[NUM_PROGRAMS][maxNumLights];
-//GLuint lightColourID[NUM_PROGRAMS][maxNumLights];
-//GLuint lightModeID[NUM_PROGRAMS][maxNumLights];
-//GLuint attenuationModeID[NUM_PROGRAMS][maxNumLights];
-//GLuint lightAuttentiationID[NUM_PROGRAMS][maxNumLights];
-//GLuint numLightsID[NUM_PROGRAMS];
-
-
-vec3 directionalLightDir = vec3(1.f, -2.f, 2.f);
-//int numLights;
 
 
 int controlMode;
@@ -154,7 +145,7 @@ using namespace glm;
 This function is called before entering the main rendering loop.
 Use it for all your initialisation stuff
 */
-void init(GLWrapper* glw)
+void init(GLWrapperV2* glw)
 {
 	/* Set the object transformation controls to their initial values */
 	speed = 0.025f;
@@ -229,6 +220,19 @@ void init(GLWrapper* glw)
 		exit(0);
 	}
 
+
+	/* Load and build the vertex and fragment shaders */
+	try
+	{
+		programs[OMNI_SHADOW_PROGRAM] = glw->LoadShader("shaders\\omnishadows.vert", "shaders\\omnishadows.geom", "shaders\\omnishadows.frag");
+	}
+	catch (exception& e)
+	{
+		cout << "Caught exception: " << e.what() << endl;
+		cin.ignore();
+		exit(0);
+	}
+
 	// generates the frame buffer for the shadow map
 	glGenFramebuffers(1, &depthMapFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -282,23 +286,6 @@ void init(GLWrapper* glw)
 			projectionID[i] = glGetUniformLocation(programs[i], "projection");
 			normalMatrixID[i] = glGetUniformLocation(programs[i], "normalMatrix");
 
-
-			/*for (int j = 0; j < maxNumLights; j++)
-			{
-				std::string str = "lightPos[" + std::to_string(j) + "]";
-				lightPosID[i][j] = glGetUniformLocation(programs[i], str.c_str());
-
-				str = "lightColour[" + std::to_string(j) + "]";
-				lightColourID[i][j] = glGetUniformLocation(programs[i], str.c_str());
-
-				str = "lightMode[" + std::to_string(j) + "]";
-				lightModeID[i][j] = glGetUniformLocation(programs[i], str.c_str());
-
-				str = "attenuationMode[" + std::to_string(j) + "]";
-				attenuationModeID[i][j] = glGetUniformLocation(programs[i], str.c_str());
-			}
-			numLightsID[i] = glGetUniformLocation(programs[i], "numLights");*/
-
 			lightParamsID[i] = glGetUniformBlockIndex(programs[i], "LightParams");
 			glUniformBlockBinding(programs[i], lightParamsID[i], LIGHT_PARAMS_BINDING);
 
@@ -328,11 +315,7 @@ void init(GLWrapper* glw)
 					terrainRoughnessID[j] = glGetUniformLocation(programs[i], str.c_str());
 				}
 			}
-
 		}
-
-		
-
 	}
 
 	/* create our sphere and cube objects */
@@ -344,6 +327,8 @@ void init(GLWrapper* glw)
 	motorShaft.makeTube(40, 0.7);
 	cube.makeCube();
 	tree.generate("F[[-F]F[+F]]",4);
+
+	directionalLight.dir = vec3(1.f, -2.5f, 2.f);
 
 	terrain = new terrain_object(4, 1.f, 2.f);
 	terrain->createTerrain(100, 100, 20.f, 20.f);
@@ -488,7 +473,7 @@ void render(mat4& view, GLuint programID)
 		model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));//scale equally in all axis
 		
 		// light sources on drone
-		if (lightsOn)
+		if (lightsOn && programID != SHADOW_PROGRAM)
 		{
 			for (int i = 0; i < 4; i++)
 			{
@@ -1072,10 +1057,10 @@ void resetLights()
 	lightsUniformBlock.resetLights();
 }
 
-void setDirectionalLightUniforms(GLuint programID)
-{
-	lightsUniformBlock.addLight(directionalLightDir, LightMode::DIRECTIONAL);
-}
+//void setDirectionalLightUniforms(GLuint programID)
+//{
+//	lightsUniformBlock.addLight(directionalLightDir, LightMode::DIRECTIONAL);
+//}
 
 /* Called to update the display. Note that this function is called in the event loop in the wrapper
    class because we registered display as a callback function */
@@ -1118,54 +1103,6 @@ void display()
 		);
 	}
 
-	vec3 lightDirNormalised = normalize(directionalLightDir);
-
-	mat4 shadowView = glm::lookAt(
-		vec3(0.f, 0.f, 0.f),
-		directionalLightDir,
-		vec3(0.0f, 1.0f, 0.0f));
-
-	mat3 lightVectors = shadowView;
-
-	// below code gets the points in the cameras frustum in world 
-	vector<vec4> cubeNDC;
-	cubeNDC.push_back(vec4(-1.0f, -1.0f, -1.0f, 1.0f));
-	cubeNDC.push_back(vec4(1.0f, -1.0f, -1.0f, 1.0f));
-	cubeNDC.push_back(vec4(1.0f, -1.0f, 1.0f, 1.0f));
-	cubeNDC.push_back(vec4(-1.0f, -1.0f, 1.0f, 1.0f));
-	cubeNDC.push_back(vec4(-1.0f, 1.0f, -1.0f, 1.0f));
-	cubeNDC.push_back(vec4(1.0f, 1.0f, -1.0f, 1.0f));
-	cubeNDC.push_back(vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	cubeNDC.push_back(vec4(-1.0f, 1.0f, 1.0f, 1.0f));
-
-	mat4 renderViewProjectionToLightSPace = shadowView * inverse(renderProjection * renderView) ;
-
-	vector <vec4> cameraFrustum;
-	for (vec4 vertex : cubeNDC) {
-		vec4 vertexTransformed = renderViewProjectionToLightSPace * vertex;
-		vertexTransformed /= vertexTransformed.w;
-		cameraFrustum.push_back(vertexTransformed);
-	}
-
-	vec3 minBound, maxBound;
-	for (int i = 0; i < 3; i++)
-	{
-		bool first = true;
-		for (vec3 vertex : cameraFrustum)
-		{
-			if (first)
-			{
-				minBound[i] = maxBound[i] = vertex[i];
-				first = false;
-			}
-			else
-			{
-				minBound[i] = std::min(minBound[i], vertex[i]);
-				maxBound[i] = std::max(maxBound[i], vertex[i]);
-			}
-		}
-	}
-
 	// render shadow maps
 	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -1174,21 +1111,14 @@ void display()
 
 	resetLights();
 
-
-	mat4 shadowProjection = ortho(minBound.x, maxBound.x, minBound.y, maxBound.y, -maxBound.z - 5,  -minBound.z );
-
-	//shadowView = lookAt(vec3(0.f), directionalLightDir, vec3(0.f, 1.f, 0.f));
-
-	mat4 lightSpace = shadowProjection * shadowView;
-
-	//renderView = shadowView;
-	//renderProjection = shadowProjection;
+	mat4 lightSpace = directionalLight.genLightProjView(renderView,renderProjection);
 
 
 	glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
-
-	render(shadowView,SHADOW_PROGRAM);
-	renderTerrain(shadowView,SHADOW_PROGRAM);
+	glEnable(GL_DEPTH_CLAMP);
+	render(renderView,SHADOW_PROGRAM);
+	renderTerrain(renderView,SHADOW_PROGRAM);
+	glDisable(GL_DEPTH_CLAMP);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glUseProgram(0);
@@ -1211,7 +1141,7 @@ void display()
 	glUseProgram(programs[MAIN_PROGRAM]);
 
 	resetLights();
-	setDirectionalLightUniforms(MAIN_PROGRAM);
+	directionalLight.setUniforms(lightsUniformBlock);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
@@ -1230,8 +1160,8 @@ void display()
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 
-	resetLights();
-	setDirectionalLightUniforms(TERRAIN_PROGRAM);
+	//resetLights();
+	directionalLight.setUniforms(lightsUniformBlock);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
@@ -1545,7 +1475,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 /* Entry point of program */
 int main(int argc, char* argv[])
 {
-	GLWrapper* glw = new GLWrapper(1024, 768, "Assignment 1 - Drone");;
+	GLWrapperV2* glw = new GLWrapperV2(1024, 768, "Assignment 1 - Drone");;
 	windowWidth = 1024;
 	windowHeight = 768;
 

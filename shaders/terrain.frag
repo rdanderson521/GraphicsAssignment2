@@ -34,6 +34,7 @@ layout (std140) uniform LightParams{
 	uint lightMode[MAX_LIGHTS];
 	vec3 lightColour[MAX_LIGHTS];
 	vec3 attenuationParams[MAX_LIGHTS];
+	//mat4 lightSpaceMatrix[MAX_LIGHTS];
 	uint numLights;
 } lights;
 

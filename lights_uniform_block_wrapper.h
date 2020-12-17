@@ -5,6 +5,11 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+enum LightMode {
+	DIRECTIONAL,
+	OMNI_DIRECTIONAL
+};
+
 class LightsUniformWrapper 
 {
 public:

@@ -33,6 +33,15 @@
     <None Include="shaders\terrain.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="shaders\omnishadows.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\omnishadows.geom">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\omnishadows.vert">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cubev2.h">
@@ -59,6 +68,12 @@
     <ClInclude Include="lights_uniform_block_wrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="directional_light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wrapper_glfwv2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cubev2.cpp">
@@ -71,9 +86,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\sphere.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\common\wrapper_glfw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tree.cpp">
@@ -89,6 +101,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lights_uniform_block_wrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="directional_light.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wrapper_glfwv2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
