@@ -169,7 +169,7 @@ void main()
 		float shadow = 0.f;
 		if (lights.lightMode[i] == 0)
 		{
-			shadow = shadowCalculation(fIn.FragPosLightSpace[i]);
+			shadow = shadowCalculation(i);
 		}
 
 		outputColor +=  vec4(attenuation * (ambient + ((1.0 - shadow) * (specular + diffuse)) ), 1.0);
