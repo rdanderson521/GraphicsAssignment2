@@ -157,6 +157,7 @@
     <ClInclude Include="cubev2.h" />
     <ClInclude Include="cylinder.h" />
     <ClInclude Include="directional_light.h" />
+    <ClInclude Include="drone.h" />
     <ClInclude Include="lights_uniform_block_wrapper.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="terrain_object.h" />

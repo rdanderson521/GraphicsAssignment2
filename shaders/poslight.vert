@@ -22,6 +22,7 @@ out VERTEX_OUT
 	vec4 vertexColour;
 	vec4 fragLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
+	mat4 modelView;
 } vOut;
 
 
@@ -58,6 +59,8 @@ void main()
 		vOut.fragLightSpace[i] = lights.lightSpace[i] * vec4(vOut.pos,1.f);
 	}
 	vOut.texCoord = texCoord;
+
+	vOut.modelView =  view * model;
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);
 }

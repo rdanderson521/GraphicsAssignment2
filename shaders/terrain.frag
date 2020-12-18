@@ -12,6 +12,7 @@ in VERTEX_OUT
 	vec4 vertexColour;
 	vec4 fragLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
+	mat4 modelView;
 } fIn;
 
 out vec4 outputColor;
@@ -115,9 +116,13 @@ void main()
 		mat4 mv_matrix = view * model;		// Calculate the model-view transformation
 		vec4 P = view * position_h;	// Modify the vertex position (x, y, z, w) by the model-view transformation
 		vec3 N = normalize(normalMatrix * normal);		// Modify the normals by the normal-matrix (i.e. to model-view (or eye) coordinates )
-		vec3 L = -light_pos3;
+		vec3 L = vec3(0.f);
 		float distanceToLight = 0;
-		if ( lights.lightMode[i] == 1)
+		if (lights.lightMode[i] == 0)
+		{
+			L = -vec3(fIn.modelView * vec4(light_pos3, 1.f)); // calculates the directional light vector in eye space
+		}
+		else if ( lights.lightMode[i] == 1)
 		{
 			L = light_pos3 - P.xyz;		// Calculate the vector from the light position to the vertex in eye space
 			distanceToLight = length(L); // For attenuation

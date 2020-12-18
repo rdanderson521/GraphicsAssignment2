@@ -1,16 +1,6 @@
 #ifndef TREE_H
 #define TREE_H
 
-#ifdef _DEBUG
-#pragma comment(lib, "glfw3D.lib")
-#pragma comment(lib, "glloadD.lib")
-#else
-#pragma comment(lib, "glfw3.lib")
-#pragma comment(lib, "glload.lib")
-#endif
-#pragma comment(lib, "opengl32.lib")
-
-
 #include <stack>
 #include <vector>
 

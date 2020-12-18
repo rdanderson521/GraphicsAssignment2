@@ -74,6 +74,9 @@
     <ClInclude Include="wrapper_glfwv2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="drone.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cubev2.cpp">

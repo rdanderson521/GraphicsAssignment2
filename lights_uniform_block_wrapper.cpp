@@ -2,7 +2,7 @@
 
 using namespace glm;
 
-bool LightsUniformWrapper::addLight(glm::vec3 pos, bool mode, glm::vec3 colour, glm::vec3 attenuation)
+bool LightsUniformWrapper::addPointLight(glm::vec3 pos, bool mode, glm::vec3 colour, glm::vec3 attenuation)
 {
 	// this loop checks if the light source being addedis a duplicate and if it is returns true as it is already part of the structure
 	for (int i = 0; i < this->numLights; i++)
@@ -31,7 +31,7 @@ bool LightsUniformWrapper::addLight(glm::vec3 pos, bool mode, glm::vec3 colour, 
 	}
 }
 
-bool LightsUniformWrapper::addLight(glm::vec3 pos, bool mode, glm::mat4 lightSpace, glm::vec3 colour, glm::vec3 attenuation)
+bool LightsUniformWrapper::addDirectionalLight(glm::vec3 pos, bool mode, glm::mat4 lightSpace, glm::vec3 colour, glm::vec3 attenuation)
 {
 	// this loop checks if the light source being addedis a duplicate and if it is returns true as it is already part of the structure
 	for (int i = 0; i < this->numLights; i++)
