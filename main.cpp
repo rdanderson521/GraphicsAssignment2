@@ -35,6 +35,9 @@ if you prefer */
 
 #include "lights_uniform_block_wrapper.h"
 
+#define MAX_LIGHTS 20
+
+
 /* Define buffer object indices */
 GLuint elementbuffer;
 
@@ -55,7 +58,12 @@ GLuint vao;			/* Vertex array (Containor) object. This is the index of the VAO t
 // globals for shadow mapping
 //GLuint shadowProgram;	// shader program for shadow rendering
 GLuint depthMapFBO; // depth map for shadows
+
 GLuint depthMap; // idx for texture for shadow map
+GLuint dirDepthMapArray; // idx for texture array for directional shadow map
+
+
+
 const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 //GLuint shadowsModelID, shadowsLightSpaceMatrixID;
 
@@ -81,7 +89,7 @@ GLfloat moveX, moveY, moveZ;
 
 
 const int numTerrainTextures = 4;
-const int maxNumLights = 100;
+
 
 /* Uniforms*/
 GLuint modelID[NUM_PROGRAMS], viewID[NUM_PROGRAMS], projectionID[NUM_PROGRAMS], normalMatrixID[NUM_PROGRAMS], viewPosID[NUM_PROGRAMS];
@@ -91,6 +99,7 @@ GLuint shadowMapID[NUM_PROGRAMS], lightSpaceMatrixID[NUM_PROGRAMS];
 GLuint textureID[NUM_PROGRAMS], terrainTextureID[numTerrainTextures], terrainTextureThresholdID[numTerrainTextures], useTextureID[NUM_PROGRAMS];
 GLuint roughnessID[NUM_PROGRAMS], terrainRoughnessID[numTerrainTextures], useRoughnessID[NUM_PROGRAMS];
 GLuint lightParamsID[NUM_PROGRAMS];
+GLuint dirShadowMapArrayID[NUM_PROGRAMS];
 
 LightsUniformWrapper lightsUniformBlock;
 
@@ -237,6 +246,9 @@ void init(GLWrapperV2* glw)
 	glGenFramebuffers(1, &depthMapFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 
+
+
+
 	// generates the texture for the shadow map
 	glGenTextures(1, &depthMap);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -246,11 +258,28 @@ void init(GLWrapperV2* glw)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	float borderColor[] = { 10.f, 10.f, 10.f, 10.f };
+	float borderColor[] = { 1.f, 1.f, 1.f, 1.f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// generates the texture for the shadow map
+	glGenTextures(1, &dirDepthMapArray);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT,
+		SHADOW_WIDTH, SHADOW_HEIGHT, MAX_LIGHTS, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	//float borderColor[] = { 1.f, 1.f, 1.f, 1.f };
+	glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
 
 	// attaches the texture to the frame buffer
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, dirDepthMapArray, 0, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 
@@ -294,6 +323,7 @@ void init(GLWrapperV2* glw)
 			reflectivenessID[i] = glGetUniformLocation(programs[i], "reflectiveness");
 
 			shadowMapID[i] = glGetUniformLocation(programs[i], "shadowMap");
+			dirShadowMapArrayID[i] = glGetUniformLocation(programs[i], "shadowMapArr");
 
 			useTextureID[i] = glGetUniformLocation(programs[i], "useTex");
 			useRoughnessID[i] = glGetUniformLocation(programs[i], "useRoughness");
@@ -1153,9 +1183,13 @@ void display()
 	glUniformMatrix4fv(projectionID[MAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
 	//glUniformMatrix4fv(lightSpaceMatrixID[MAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 	
-	glActiveTexture(GL_TEXTURE5);
+	/*glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glUniform1i(shadowMapID[MAIN_PROGRAM], 5);
+	glUniform1i(shadowMapID[MAIN_PROGRAM], 5);*/
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
+	glUniform1i(dirShadowMapArrayID[MAIN_PROGRAM], 5);
 
 
 	render(renderView,MAIN_PROGRAM);
@@ -1174,8 +1208,10 @@ void display()
 	//glUniformMatrix4fv(lightSpaceMatrixID[TERRAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
 	glActiveTexture(GL_TEXTURE0 + numTerrainTextures*2);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glUniform1i(shadowMapID[TERRAIN_PROGRAM], numTerrainTextures * 2);
+	//glBindTexture(GL_TEXTURE_2D, depthMap);
+	//glUniform1i(shadowMapID[TERRAIN_PROGRAM], numTerrainTextures * 2);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
+	glUniform1i(dirShadowMapArrayID[TERRAIN_PROGRAM], numTerrainTextures * 2);
 
 	renderTerrain(renderView,TERRAIN_PROGRAM);
 

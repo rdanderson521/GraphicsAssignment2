@@ -21,7 +21,7 @@ out VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 fragPosLightSpace[MAX_LIGHTS];
+	vec4 fragLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
 } vOut;
 
@@ -45,7 +45,7 @@ void main()
 	vOut.normal = normal; 
 	for (int i = 0; i < lights.numLights; i++)
 	{
-		vOut.fragPosLightSpace[i] = lights.lightSpace[i] * vec4(vOut.pos,1.f);
+		vOut.fragLightSpace[i] = lights.lightSpace[i] * vec4(vOut.pos,1.f);
 	}
 	vOut.texCoord = vec2(position.x,position.z);
 

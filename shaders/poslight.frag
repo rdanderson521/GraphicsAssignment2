@@ -10,7 +10,7 @@ in VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 FragPosLightSpace[MAX_LIGHTS];
+	vec4 fragLightSpace[MAX_LIGHTS];
 	vec2 texCoord;
 } fIn;
 
@@ -21,6 +21,8 @@ uniform mat4 model, view, projection;
 uniform mat3 normalMatrix;
 
 uniform sampler2D shadowMap;
+uniform sampler2DArray shadowMapArr;
+
 
 uniform sampler2D tex;
 uniform bool useTex;
@@ -46,14 +48,17 @@ uniform float reflectiveness; // value of 0.01 - 1
 vec3 specular_albedo = vec3(1.0, 0.8, 0.6);
 vec3 global_ambient = vec3(0.1, 0.1, 0.1);
 
-float shadowCalculation(vec4 lightSpace)
+
+
+float shadowCalculation(int lightIdx)
 {
+	vec4 lightSpace = fIn.fragLightSpace[lightIdx];
 
 	vec3 projCoords = lightSpace.xyz / lightSpace.w;
 
 	projCoords = projCoords * 0.5 + 0.5;
 
-	float closestDepth = texture(shadowMap, projCoords.xy).r;
+	float closestDepth = texture(shadowMapArr, vec3(projCoords.xy,lightIdx)).r;
 
 	float currentDepth = projCoords.z; 
 	float bias = 0.005;
