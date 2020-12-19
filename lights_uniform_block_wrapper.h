@@ -33,6 +33,8 @@ public:
 	glm::mat4 lightSpace[MAX_LIGHTS];
 	glm::vec4 lightColour[MAX_LIGHTS];
 	glm::vec4 attenuationParams[MAX_LIGHTS];
+	glm::uint shadowIdx[MAX_LIGHTS];
+	glm::uint cascading[MAX_LIGHTS];
 	glm::uint numLights;
 
 private:

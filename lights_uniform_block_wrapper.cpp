@@ -22,6 +22,8 @@ bool LightsUniformWrapper::addPointLight(glm::vec3 pos, bool mode, glm::vec3 col
 		this->lightMode[this->numLights] = mode;
 		this->lightColour[this->numLights] = vec4(colour, 0.f);
 		this->attenuationParams[this->numLights] = vec4(attenuation, 0.f);
+		this->shadowIdx[this->numLights] = 0;
+		this->cascading[this->numLights] = false;
 		this->numLights++;
 		genBuffer();
 	}
@@ -53,6 +55,8 @@ bool LightsUniformWrapper::addDirectionalLight(glm::vec3 pos, bool mode, glm::ma
 		this->lightSpace[this->numLights] = lightSpace;
 		this->lightColour[this->numLights] = vec4(colour, 0.f);
 		this->attenuationParams[this->numLights] = vec4(attenuation, 0.f);
+		this->shadowIdx[this->numLights] = 0;
+		this->cascading[this->numLights] = false;
 		this->numLights++;
 		genBuffer();
 	}
@@ -71,6 +75,8 @@ void LightsUniformWrapper::resetLights()
 		this->lightSpace[i] = mat4(1.f);
 		this->lightColour[i] = vec4(vec3(1.f),0.f);
 		this->attenuationParams[i] = vec4(1.f, 0.f, 0.f, 0.f);
+		this->shadowIdx[i] = 0;
+		this->cascading[i] = false;
 		this->numLights = 0;
 	}
 }
@@ -89,21 +95,38 @@ void LightsUniformWrapper::genBuffer()
 	glGenBuffers(1, &uniformBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
 
-	glBufferData(GL_UNIFORM_BUFFER, ((4 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS + sizeof(GLuint), NULL, GL_STATIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, ((6 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS + sizeof(GLuint), NULL, GL_STATIC_DRAW);
 
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(vec4) * MAX_LIGHTS, lightPos);
 
 	for (int i = 0; i < MAX_LIGHTS; i++)
 	{
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(vec4) * (MAX_LIGHTS + i), sizeof(uint) * MAX_LIGHTS, &lightMode[i]);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(vec4) * (MAX_LIGHTS + i) + sizeof(uint), sizeof(vec3) * MAX_LIGHTS, &padding);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(vec4) * (MAX_LIGHTS + i), sizeof(uint) , &lightMode[i]);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(vec4) * (MAX_LIGHTS + i) + sizeof(uint), sizeof(vec3) , &padding);
 	}
 
 	glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(vec4) * MAX_LIGHTS, sizeof(mat4) * MAX_LIGHTS, lightSpace);
 
 	glBufferSubData(GL_UNIFORM_BUFFER, ((2 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS, sizeof(vec4) * MAX_LIGHTS, lightColour);
 	glBufferSubData(GL_UNIFORM_BUFFER, ((3 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS, sizeof(vec4) * MAX_LIGHTS, attenuationParams);
-	glBufferSubData(GL_UNIFORM_BUFFER, ((4 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS, sizeof(uint), &numLights);
+
+	for (int i = 0; i < MAX_LIGHTS; i++)
+	{
+		size_t size = ((4 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS;
+
+		glBufferSubData(GL_UNIFORM_BUFFER, size + sizeof(vec4) * i, sizeof(uint), &shadowIdx[i]);
+		glBufferSubData(GL_UNIFORM_BUFFER, size + sizeof(vec4) * i + sizeof(uint), sizeof(vec3) , &padding);
+	}
+
+	for (int i = 0; i < MAX_LIGHTS; i++)
+	{
+		size_t size = ((5 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS;
+
+		glBufferSubData(GL_UNIFORM_BUFFER, size + sizeof(vec4) * i, sizeof(uint), &cascading[i]);
+		glBufferSubData(GL_UNIFORM_BUFFER, size + sizeof(vec4) * i + sizeof(uint), sizeof(vec3), &padding);
+	}
+
+	glBufferSubData(GL_UNIFORM_BUFFER, ((6 * sizeof(vec4)) + sizeof(mat4)) * MAX_LIGHTS, sizeof(uint), &numLights);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }

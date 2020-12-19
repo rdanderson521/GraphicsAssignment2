@@ -40,6 +40,8 @@ layout (std140) uniform lightParams	{
 	mat4 lightSpace[MAX_LIGHTS];
 	vec3 lightColour[MAX_LIGHTS];
 	vec3 attenuationParams[MAX_LIGHTS];
+	uint shadowIdx[MAX_LIGHTS];
+	uint cascading[MAX_LIGHTS];
 	uint numLights;
 } lights;
 

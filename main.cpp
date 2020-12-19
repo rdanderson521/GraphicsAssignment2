@@ -473,7 +473,7 @@ void display()
 	mat4 renderView;
 
 
-	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, 15.f);
+	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, 20.f);
 
 	GLfloat temp = drone.pos.x / drone.pos.z;
 	if (abs(drone.pos.x) < 0.01 || abs(drone.pos.z) < 0.01)
@@ -496,7 +496,7 @@ void display()
 
 	resetLights();
 
-	mat4 lightSpace = directionalLight.genLightProjView(renderView,renderProjection);
+	mat4 lightSpace = directionalLight.genLightProjView(renderView, renderProjection);
 	glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
 	glEnable(GL_DEPTH_CLAMP);
@@ -715,7 +715,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 /* Entry point of program */
 int main(int argc, char* argv[])
 {
-	GLWrapperV2* glw = new GLWrapperV2(1024, 768, "Assignment 1 - Drone");;
+	GLWrapperV2* glw = new GLWrapperV2(1024, 768, "Assignment 2 - Drone");;
 	windowWidth = 1024;
 	windowHeight = 768;
 
