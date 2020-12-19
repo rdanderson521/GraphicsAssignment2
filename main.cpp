@@ -65,8 +65,8 @@ GLuint emitmode;
 GLuint attenuationmode;
 
 /* Position and view globals */
-GLfloat angle_x, angle_inc_x, x, model_scale, z, y, vx, vy, vz;
-GLfloat angle_y, angle_inc_y, angle_z, angle_inc_z;
+GLfloat vx, vy, vz; //angle_x, angle_inc_x, x, model_scale, z, y,
+//GLfloat angle_y, angle_inc_y, angle_z, angle_inc_z;
 GLuint drawmode;			// Defines drawing mode of sphere as points, lines or filled polygons
 GLfloat speed;				// movement increment
 GLfloat motorAngle;				
@@ -133,14 +133,11 @@ void init(GLWrapperV2* glw)
 {
 	/* Set the object transformation controls to their initial values */
 	speed = 0.025f;
-	x = 0.05f;
-	y = 0;
-	z = 0;
 	vx = 0; vx = 0, vz = 4.f;
 	//light_x = 0; light_y = 1; light_z = 0;
-	angle_x = angle_y = angle_z = 0;
+	/*angle_x = angle_y = angle_z = 0;
 	angle_inc_x = angle_inc_y = angle_inc_z = 0;
-	model_scale = 1.f;
+	model_scale = 1.f;*/
 	aspect_ratio = 1.3333f;
 	emitmode = 0;
 	attenuationmode = 1; // Attenuation is on by default
@@ -149,19 +146,12 @@ void init(GLWrapperV2* glw)
 
 	//control mode 2 defaults
 	modelAngleChange = 2.f;
-	angle_inc_x = 0;
+	/*angle_inc_x = 0;
 	angle_inc_y = 0;
 	angle_inc_z = 0;
 	angle_x = 0;
 	angle_y = 0;
-	angle_z = 0;
-	modelAngle_x = 0;
-	modelAngle_y = 0;
-	modelAngle_z = 0;
-	model_scale = 1.f;
-	x = 0;
-	y = 0;
-	z = 4;
+	angle_z = 0;*/
 	lightsOn = true;
 
 	lightsUniformBlock.resetLights();
@@ -403,6 +393,7 @@ void init(GLWrapperV2* glw)
 		modelID, normalMatrixID, colourOverrideID, reflectivenessID };
 
 	drone.init(droneuniforms, texture[CARBON], roughnessMap[CARBON], vec3(0.f, terrain->heightAtPosition(0.f,0.f) + 0.2f, 0.f));
+	drone.droneScale = 0.35f;
 	
 
 	// print instructions
@@ -556,27 +547,29 @@ void display()
 
 	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, 15.f);
 
-	if (controlMode == 1)
-	{
-		renderView = lookAt(
-			vec3(0, 0, -4), // Camera is at (0,0,4), in World Space
-			vec3(0, 0, 0), // and looks at the origin
-			vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-		);
+	//if (controlMode == 1)
+	//{
+	//	renderView = lookAt(
+	//		vec3(0, 0, -4), // Camera is at (0,0,4), in World Space
+	//		vec3(0, 0, 0), // and looks at the origin
+	//		vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+	//	);
 
-		renderView = rotate(renderView, -angle_x, vec3(1, 0, 0));
-		renderView = rotate(renderView, radians(angle_y), vec3(0, 1, 0));
+	//	renderView = rotate(renderView, -angle_x, vec3(1, 0, 0));
+	//	renderView = rotate(renderView, radians(angle_y), vec3(0, 1, 0));
 
-	}
-	else if (controlMode == 2)
+	//}
+	if (controlMode == 2)
 	{
-		GLfloat temp = x / z;
-		if (abs(x) < 0.01 || abs(z) < 0.01)
+		GLfloat temp = drone.pos.x / drone.pos.z;
+		if (abs(drone.pos.x) < 0.01 || abs(drone.pos.z) < 0.01)
 			temp = 0;
 
+		vec3 cameraPos = mat3(rotate(mat4(1.f), -radians(drone.orient.y), vec3(0.f, 1.f, 0.f))) * vec3(0.f, (1.2f * drone.droneScale), -(3.f * drone.droneScale)) + drone.pos;
+
 		renderView = lookAt(
-			vec3(0, 6, 0), 
-			vec3(x, y, z), 
+			cameraPos,
+			vec3(drone.pos.x, drone.pos.y, drone.pos.z),
 			vec3(0, 1, 0)  
 		);
 	}
@@ -620,6 +613,8 @@ void display()
 	//resetLights();
 	lightsUniformBlock.resetLights();
 	directionalLight.setUniforms(lightsUniformBlock);
+	if (lightsOn)
+		drone.setLightUniforms(lightsUniformBlock, renderView);
 
 	lightsUniformBlock.bind(LIGHT_PARAMS_BINDING);
 
@@ -669,62 +664,62 @@ void display()
 
 	GLfloat minmaxXZ = 9.5f;
 	GLfloat maxY = 15.f;
-	GLfloat minY = terrain->heightAtPosition(x,z) + 0.2f;
+	GLfloat minY = terrain->heightAtPosition(drone.pos.x,drone.pos.z) + 0.2f;
 
-	vec3 pos, orient; 
+	vec3 pos = vec3(0), orient = vec3(0);
 
-	if (controlMode == 1)
-	{
-		angle_y += angle_inc_y;
-		motorAngle += motorAngleInc;
-	}
-	else if (controlMode == 2)
+
+	if (controlMode == 2)
 	{
 		if (moveY > 0 && drone.pos.y < maxY)
 		{
-			drone.pos.y += moveY;
+			pos.y += moveY;
 		}
 		else if (moveY < 0 && drone.pos.y > minY)
 		{
-			drone.pos.y += moveY;
+			pos.y += moveY;
 		}
 
 		if (moveZ > 0 && drone.pos.z < minmaxXZ && drone.pos.y > minY)
 		{
-			drone.pos.z += moveZ;
-			drone.orient.x = glm::max(-30.f, drone.orient.x - modelAngleChange);
+			pos.z += moveZ;
+			orient.x = - modelAngleChange;
 		}
 		else if (moveZ < 0 && drone.pos.z > -minmaxXZ && drone.pos.y > minY)
 		{
-			drone.pos.z += moveZ;
-			drone.orient.x = glm::min(30.f, drone.orient.x + modelAngleChange);
+			pos.z = moveZ;
+			orient.x = modelAngleChange;
 		}
 		else
 		{
 			if (drone.orient.x > 0)
-				drone.orient.x -= modelAngleChange;
+				orient.x -= modelAngleChange;
 			if (drone.orient.x < 0)
-				drone.orient.x += modelAngleChange;
+				orient.x += modelAngleChange;
 		}
 
 
 		if (moveX > 0 && drone.pos.x < minmaxXZ && drone.pos.y > minY)
 		{
-			drone.pos.x += moveX;
-			drone.orient.z = glm::min(30.f, drone.orient.z + modelAngleChange);
+			//drone.pos.x += moveX;
+			orient.z = modelAngleChange;
+			orient.y = -0.5 * modelAngleChange;
 		}
 		else if (moveX < 0 && drone.pos.x > -minmaxXZ && drone.pos.y > minY)
 		{
-			drone.pos.x += moveX;
-			drone.orient.z = glm::max(-30.f, drone.orient.z - modelAngleChange);
+			//drone.pos.x += moveX;
+			orient.z = -modelAngleChange;
+			orient.y = 0.5 * modelAngleChange;
 		}
 		else
 		{
 			if (drone.orient.z > 0)
-				drone.orient.z -= modelAngleChange;
+				orient.z -= modelAngleChange;
 			if (drone.orient.z < 0)
-				drone.orient.z += modelAngleChange;
+				orient.z += modelAngleChange;
 		}
+
+		drone.move(pos, orient);
 
 		if (drone.pos.y > minY)
 		{
@@ -776,7 +771,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	if (modeChanged)
 	{
 		cout << "mode Changed" << endl;
-		if (controlMode == 1)
+		/*if (controlMode == 1)
 		{
 			angle_inc_x = 0;
 			angle_inc_y = 0.05;
@@ -799,10 +794,10 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 			motorAngleInc = 5;
 
 			lightsOn = true;
-		}
-		else if (controlMode == 2)
+		}*/
+		if (controlMode == 2)
 		{
-			angle_inc_x = 0;
+			/*angle_inc_x = 0;
 			angle_inc_y = 0;
 			angle_inc_z = 0;
 
@@ -818,7 +813,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 
 			x = 0;
 			y = 0;
-			z = 4;
+			z = 4;*/
 
 			lightsOn = true;
 		}
@@ -826,50 +821,50 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 
 
 
-	if (controlMode == 1)
-	{
-		if (key == 'A')//left
-		{
-			angle_inc_y += speed;
-		}
-		else if (key == 'D')//right
-		{
-			angle_inc_y -= speed;
-		}
+	//if (controlMode == 1)
+	//{
+	//	if (key == 'A')//left
+	//	{
+	//		angle_inc_y += speed;
+	//	}
+	//	else if (key == 'D')//right
+	//	{
+	//		angle_inc_y -= speed;
+	//	}
 
-		if (key == 'W')//Up
-		{
-			if (angle_x < 1.57) // about 90deg
-				angle_x += speed;
+	//	if (key == 'W')//Up
+	//	{
+	//		if (angle_x < 1.57) // about 90deg
+	//			angle_x += speed;
 
-		}
-		else if (key == 'S')//Down
-		{
-			if (angle_x > 0)
-				angle_x -= speed;
-		}
+	//	}
+	//	else if (key == 'S')//Down
+	//	{
+	//		if (angle_x > 0)
+	//			angle_x -= speed;
+	//	}
 
-		if (key == 'E')// zoom in
-		{
-			model_scale += speed;
+	//	if (key == 'E')// zoom in
+	//	{
+	//		model_scale += speed;
 
-		}
-		else if (key == 'Q')// zoom out
-		{
-			model_scale -= speed;
-		}
+	//	}
+	//	else if (key == 'Q')// zoom out
+	//	{
+	//		model_scale -= speed;
+	//	}
 
-		if (key == 'R')// prop speed up
-		{
-			motorAngleInc += 1;
+	//	if (key == 'R')// prop speed up
+	//	{
+	//		motorAngleInc += 1;
 
-		}
-		else if (key == 'T')// prop speed down
-		{
-			motorAngleInc -= 1;
-		}
-	}
-	else if (controlMode == 2)
+	//	}
+	//	else if (key == 'T')// prop speed down
+	//	{
+	//		motorAngleInc -= 1;
+	//	}
+	//}
+	if (controlMode == 2)
 	{
 		if (key == 'A')//left
 		{
@@ -919,7 +914,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 				moveY = 0;
 		}
 	}
-	else
+	/*else
 	{
 		if (key == 'Q') angle_inc_x -= speed;
 		if (key == 'W') angle_inc_x += speed;
@@ -936,7 +931,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 		if (key == '0') vy += 1.f;
 		if (key == 'O') vz -= 1.f;
 		if (key == 'P') vz += 1.f;
-	}
+	}*/
 
 	/* Cycle between drawing vertices, mesh and filled polygons */
 	if (key == 'F' && action == GLFW_RELEASE )

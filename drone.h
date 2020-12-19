@@ -49,6 +49,8 @@ public:
 
 	void spinMotor();
 
+	void move(glm::vec3 pos, glm::vec3 orient);
+
 private:
 
 	// parameters used to transform the parts which make up the drone model

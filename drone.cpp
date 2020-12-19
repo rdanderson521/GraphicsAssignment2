@@ -42,11 +42,11 @@ void Drone::setLightUniforms(LightsUniformWrapper& uniforms, mat4 view)
 				vec3 lightPos = view * model.top() * vec4(1.0f);
 				vec3 lightColour;
 				if (i > 0 && i < 3)
-					lightColour = vec3(0.6f, 0.1f, 0.1f);
+					lightColour = vec3(1.f, 0.1f, 0.1f);
 				else
-					lightColour = vec3(0.1f, 0.6f, 0.1f);
+					lightColour = vec3(0.1f, 1.f, 0.1f);
 
-				uniforms.addPointLight(lightPos, LightMode::OMNI_DIRECTIONAL, lightColour, vec3(0.4f, 0.2f, 0.8f));
+				uniforms.addPointLight(lightPos, LightMode::OMNI_DIRECTIONAL, lightColour, vec3(1.f, 0.6f, 0.8f));
 
 			}
 			model.pop();
@@ -58,13 +58,14 @@ void Drone::setLightUniforms(LightsUniformWrapper& uniforms, mat4 view)
 
 void Drone::globalTransformations(std::stack<glm::mat4>& model)
 {
+
 	// global transformations for whole drone
 	model.top() = translate(model.top(), this->pos); // translating xyz
 
 	// rotates the model after transforming it so these transformations do not affect the translation
-	model.top() = rotate(model.top(), -radians(this->orient.x), glm::vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
 	model.top() = rotate(model.top(), -radians(this->orient.y), glm::vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
 	model.top() = rotate(model.top(), -radians(this->orient.z), glm::vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
+	model.top() = rotate(model.top(), -radians(this->orient.x), glm::vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
 
 	model.top() = rotate(model.top(), -radians(90.f), glm::vec3(0, 1, 0)); //rotates 90 degrees to align the drone along the axis which make controls easier
 
@@ -445,4 +446,15 @@ void Drone::spinMotor()
 	this->motorAngle += MOTOR_RATE;
 	if (this->motorAngle > 360)
 		this->motorAngle -= 360;
+}
+
+void Drone::move(glm::vec3 pos, glm::vec3 orient)
+{
+	this->orient += orient;
+	this->orient.x = glm::max(glm::min(30.f, this->orient.x), -30.f);
+	this->orient.z = glm::max(glm::min(30.f, this->orient.z), -30.f);
+
+	pos = mat3(rotate(mat4(1.f), -radians(this->orient.y), vec3(0.f, 1.f, 0.f))) * pos;
+	this->pos += pos;
+
 }
