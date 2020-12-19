@@ -154,6 +154,7 @@
     <None Include="shaders\terrain.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="common_includes.h" />
     <ClInclude Include="cubev2.h" />
     <ClInclude Include="cylinder.h" />
     <ClInclude Include="directional_light.h" />
@@ -171,6 +172,7 @@
     <ClCompile Include="cubev2.cpp" />
     <ClCompile Include="cylinder.cpp" />
     <ClCompile Include="directional_light.cpp" />
+    <ClCompile Include="drone.cpp" />
     <ClCompile Include="lights_uniform_block_wrapper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="terrain_object.cpp" />

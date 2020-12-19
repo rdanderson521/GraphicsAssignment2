@@ -77,6 +77,9 @@
     <ClInclude Include="drone.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="common_includes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cubev2.cpp">
@@ -110,6 +113,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wrapper_glfwv2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

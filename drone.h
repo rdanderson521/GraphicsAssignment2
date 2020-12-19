@@ -12,6 +12,10 @@
 
 #include "lights_uniform_block_wrapper.h"
 
+#include "common_includes.h"
+
+
+
 class Drone
 {
 public:
@@ -19,35 +23,45 @@ public:
 	Tube motorBell;
 	Cylinder motorStator, cylinder;
 
-	float x, y, z; //position
+	glm::vec3 pos, orient;
+
+	float droneScale;
+	float motorAngle;
+
+	GLuint frameTexture;
+	GLuint frameRoughnessMap;
+	
+	DroneUniforms u;
 
 
 	void init();
 
-	void draw(int drawmode);
+	void draw(int drawmode, GLuint programID, glm::mat4 view);
 
-	void setLightUniforms(LightsUniformWrapper& uniforms);
+	void setLightUniforms(LightsUniformWrapper& uniforms, glm::mat4 view);
 
 	void move();
 
+	void animate();
+
 private:
 
-	vec3 framePlateScale = vec3(1.f, 0.015f, 0.3f);
-	vec3 frameArmScale = vec3(0.8f, 0.03f, 0.15f);
-	vec3 standoffScale = vec3(0.025f, 0.17f, 0.025f);
+	glm::vec3 framePlateScale = glm::vec3(1.f, 0.015f, 0.3f);
+	glm::vec3 frameArmScale = glm::vec3(0.8f, 0.03f, 0.15f);
+	glm::vec3 standoffScale = glm::vec3(0.025f, 0.17f, 0.025f);
 
-	vec3 motorBellScale = vec3(0.15f, 0.085f, 0.15f);
-	vec3 motorStatorScale = vec3(0.125f, 0.08f, 0.125f);
-	vec3 motorShaftScale = vec3(0.025f, 0.085f, 0.025f);
-	vec3 motorStrutsScale = vec3(0.011f, 0.011f, 0.14f);
-	vec3 groundPlaneScale = vec3(20.f, 0.0001f, 20.f);
+	glm::vec3 motorBellScale = glm::vec3(0.15f, 0.085f, 0.15f);
+	glm::vec3 motorStatorScale = glm::vec3(0.125f, 0.08f, 0.125f);
+	glm::vec3 motorShaftScale = glm::vec3(0.025f, 0.085f, 0.025f);
+	glm::vec3 motorStrutsScale = glm::vec3(0.011f, 0.011f, 0.14f);
+	glm::vec3 groundPlaneScale = glm::vec3(20.f, 0.0001f, 20.f);
 
-	vec4 frameColour = vec4(0.20f, 0.20f, 0.20f, 1.f);
-	vec4 treeColour = vec4(0.50f, 0.25f, 0.f, 1.f);
-	vec4 motorColour = vec4(0.60f, 0.60f, 0.60f, 1.f);
-	vec4 motorStatorColour = vec4(0.88f, 0.44f, 0.f, 1.f);
-	vec4 standoffColour = vec4(1.f, 0.f, 0.f, 1.f);
-	vec3 groundPlaneColour = vec3(0.8f, 0.8f, 0.8f);
+	glm::vec4 frameColour = glm::vec4(0.20f, 0.20f, 0.20f, 1.f);
+	glm::vec4 treeColour = glm::vec4(0.50f, 0.25f, 0.f, 1.f);
+	glm::vec4 motorColour = glm::vec4(0.60f, 0.60f, 0.60f, 1.f);
+	glm::vec4 motorStatorColour = glm::vec4(0.88f, 0.44f, 0.f, 1.f);
+	glm::vec4 standoffColour = glm::vec4(1.f, 0.f, 0.f, 1.f);
+	glm::vec3 groundPlaneColour = glm::vec3(0.8f, 0.8f, 0.8f);
 
 	GLfloat motorReflect = 8.f;
 	GLfloat motorStatorReflect = 2.f;

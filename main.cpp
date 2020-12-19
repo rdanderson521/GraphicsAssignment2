@@ -35,20 +35,12 @@ if you prefer */
 
 #include "lights_uniform_block_wrapper.h"
 
-#define MAX_LIGHTS 20
-
+#include "common_includes.h"
 
 /* Define buffer object indices */
 GLuint elementbuffer;
 
-enum programID
-{
-	MAIN_PROGRAM,
-	TERRAIN_PROGRAM,
-	SHADOW_PROGRAM,
-	OMNI_SHADOW_PROGRAM,
-	NUM_PROGRAMS
-};
+
 
 GLuint programs[NUM_PROGRAMS];		/* Identifier for the shader prgoram */
 GLuint vao;			/* Vertex array (Containor) object. This is the index of the VAO that will be the container for
@@ -105,13 +97,6 @@ LightsUniformWrapper lightsUniformBlock;
 
 DirectionalLight directionalLight;
 
-enum UniformBinding 
-{
-	LIGHT_PARAMS_BINDING = 0
-};
-
-
-
 int controlMode;
 
 GLfloat aspect_ratio;		/* Aspect ratio of the window defined in the reshape callback*/
@@ -131,16 +116,6 @@ terrain_object* terrain;
 
 std::vector<vec3> treeLocations;
 
-enum textures
-{
-	SAND,
-	GRASS,
-	DIRT,
-	ROCK,
-	BARK,
-	CARBON,
-	totalNumTextures
-};
 
 // texture IDs
 GLuint texture[totalNumTextures];
@@ -1176,6 +1151,8 @@ void display()
 	lightsUniformBlock.resetLights();
 	directionalLight.setUniforms(lightsUniformBlock);
 
+	lightsUniformBlock.bind(LIGHT_PARAMS_BINDING);
+
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
 	glUniform1ui(colourModeID[MAIN_PROGRAM], colourmode);
@@ -1198,7 +1175,7 @@ void display()
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 
 	//resetLights();
-	directionalLight.setUniforms(lightsUniformBlock);
+	//directionalLight.setUniforms(lightsUniformBlock);
 
 	// Send our projection and view uniforms to the currently bound shader
 	// I do that here because they are the same for all objects
