@@ -17,11 +17,14 @@ public:
 
 	static const unsigned int MAX_LIGHTS = 20; // the size of the arrays which hold the lights in the shader uniform block
 
+	// adds the parameters for the respective light types
 	bool addPointLight(glm::vec3 pos, bool mode, glm::vec3 colour = glm::vec3(1.f), glm::vec3 attenuation = glm::vec3(1.f,0.f,0.f)); // for point lights
 	bool addDirectionalLight(glm::vec3 pos, bool mode, glm::mat4 lightSpace, glm::vec3 colour = glm::vec3(1.f), glm::vec3 attenuation = glm::vec3(1.f,0.f,0.f)); // for directional lights which require the light space matrix to be sent to the shaders
 
+	// reets all parameters
 	void resetLights();
 
+	// binds the uniform to the binding point for the buffer
 	void bind(GLuint bindingPoint);
 
 	// using vec4 insteam of vec3 as layout std140 requires padding in arays to get each object up to 16bytes
@@ -40,6 +43,7 @@ private:
 
 	bool bufferChanged;
 
+	// generates the buffer from the variables set
 	void genBuffer();
 };
 

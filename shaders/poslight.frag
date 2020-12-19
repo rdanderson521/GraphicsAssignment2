@@ -159,11 +159,11 @@ void main()
 
 		// Calculate the attenuation factor;
 		float attenuation;
-		if (lights.lightMode[i] == 0)
-		{
-			attenuation = 1.f;
-		}
-		else
+//		if (lights.lightMode[i] == 0)
+//		{
+//			attenuation = 1.f;
+//		}
+//		else
 		{
 			// Define attenuation constants. These could be uniforms for greater flexibility
 			attenuation = 1.0 / (lights.attenuationParams[i].x + lights.attenuationParams[i].y*distanceToLight + 

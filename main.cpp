@@ -23,9 +23,6 @@ if you prefer */
 #include <glm/gtc/type_ptr.hpp>
 
 // Include headers for our objects
-#include "sphere.h"
-#include "cubev2.h"
-#include "tube.h"
 #include "tree.h"
 #include "terrain_object.h"
 
@@ -61,12 +58,10 @@ GLuint dirDepthMapArray; // idx for texture array for directional shadow map
 const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 //GLuint shadowsModelID, shadowsLightSpaceMatrixID;
 
-GLuint emitmode;
-GLuint attenuationmode;
+//GLuint emitmode;
+//GLuint attenuationmode;
 
 /* Position and view globals */
-GLfloat vx, vy, vz; //angle_x, angle_inc_x, x, model_scale, z, y,
-//GLfloat angle_y, angle_inc_y, angle_z, angle_inc_z;
 GLuint drawmode;			// Defines drawing mode of sphere as points, lines or filled polygons
 GLfloat speed;				// movement increment
 GLfloat motorAngle;				
@@ -96,20 +91,12 @@ LightsUniformWrapper lightsUniformBlock;
 
 DirectionalLight directionalLight;
 
-int controlMode;
-
 GLfloat aspect_ratio;		/* Aspect ratio of the window defined in the reshape callback*/
 int windowWidth, windowHeight;
 GLuint numspherevertices;
 
 
-
-
 /* Global instances of our objects */
-Tube tube;
-Tube motorBell, motorStator, motorShaft;
-Cubev2 cube;
-Sphere sphere;
 Tree tree;
 terrain_object* terrain;
 Drone drone;
@@ -133,25 +120,11 @@ void init(GLWrapperV2* glw)
 {
 	/* Set the object transformation controls to their initial values */
 	speed = 0.025f;
-	vx = 0; vx = 0, vz = 4.f;
-	//light_x = 0; light_y = 1; light_z = 0;
-	/*angle_x = angle_y = angle_z = 0;
-	angle_inc_x = angle_inc_y = angle_inc_z = 0;
-	model_scale = 1.f;*/
 	aspect_ratio = 1.3333f;
-	emitmode = 0;
-	attenuationmode = 1; // Attenuation is on by default
 	motorAngle = 0;
-	controlMode = 2;
 
 	//control mode 2 defaults
 	modelAngleChange = 2.f;
-	/*angle_inc_x = 0;
-	angle_inc_y = 0;
-	angle_inc_z = 0;
-	angle_x = 0;
-	angle_y = 0;
-	angle_z = 0;*/
 	lightsOn = true;
 
 	lightsUniformBlock.resetLights();
@@ -211,21 +184,6 @@ void init(GLWrapperV2* glw)
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 
 
-
-
-	// generates the texture for the shadow map
-	glGenTextures(1, &depthMap);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	float borderColor[] = { 1.f, 1.f, 1.f, 1.f };
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
 	// generates the texture for the shadow map
 	glGenTextures(1, &dirDepthMapArray);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
@@ -235,11 +193,9 @@ void init(GLWrapperV2* glw)
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	//float borderColor[] = { 1.f, 1.f, 1.f, 1.f };
+	float borderColor[] = { 1.f, 1.f, 1.f, 1.f };
 	glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
 	glBindTexture(GL_TEXTURE_2D, 0);
-
-
 
 
 	// attaches the texture to the frame buffer
@@ -256,9 +212,6 @@ void init(GLWrapperV2* glw)
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-
 
 	// Generate index (name) for one vertex array object
 	glGenVertexArrays(1, &vao);
@@ -315,14 +268,7 @@ void init(GLWrapperV2* glw)
 		}
 	}
 
-	/* create our sphere and cube objects */
 
-	sphere.makeSphere(20, 20);
-	tube.makeTube(15, 0.1);
-	motorBell.makeTube(40, 0.1);
-	motorStator.makeTube(40, 0.85);
-	motorShaft.makeTube(40, 0.7);
-	cube.makeCube();
 	tree.generate("F[[-F]F[+F]]", 4);
 
 	directionalLight.dir = vec3(1.f, -2.5f, 2.f);
@@ -400,32 +346,16 @@ void init(GLWrapperV2* glw)
 	cout << endl <<
 		"####\\/ Drone Simulator \\/####" << endl << 
 		endl <<
-		"##### Modes #####" << endl <<
-		"[1]: View Mode" << endl <<
-		"[2]: Fly Mode (default)" << endl << 
-		endl <<
-		"##### View Mode #####" << endl <<
-		"[Q]: Zoom out" << endl <<
-		"[E]: Zoom in" << endl <<
-		"[W]: Pan up" << endl <<
-		"[S]: Pan down" << endl <<
-		"[A]: Increase pan speed left" << endl <<
-		"[D]: Increase pan speed right" << endl << 
-		"[R]: Increase propeller speed" << endl <<
-		"[T]: Decrease propeller speed right" << endl <<
-		endl <<
 		"##### Fly Mode #####" << endl <<
 		"[Q]: Fly down/ land" << endl <<
 		"[E]: Fly up/ takeoff" << endl <<
 		"[W]: Fly forward" << endl <<
 		"[S]: Fly backward" << endl <<
-		"[A]: Fly left" << endl <<
-		"[D]: Fly right" << endl <<
-		"The green lights on the drone are forward and red are back." << endl <<
-		"The drone has to be a bit off the ground before you can start moving around" << endl << 
-		endl <<
-		"##### General Buttons #####" << endl <<
-		"[F] Turn lights on the drone on/off (on by default)" << endl <<
+		"[A]: Turn left" << endl <<
+		"[D]: Turn right" << endl <<
+		"[F] Turn lights on the drone on/off (on by default)" << endl << 
+		endl << 
+		"##### Other Settings #####" << endl <<
 		"[,] Switch between draw modes to see the triangles or vertices" << endl;
 
 }
@@ -547,32 +477,17 @@ void display()
 
 	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, 15.f);
 
-	//if (controlMode == 1)
-	//{
-	//	renderView = lookAt(
-	//		vec3(0, 0, -4), // Camera is at (0,0,4), in World Space
-	//		vec3(0, 0, 0), // and looks at the origin
-	//		vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-	//	);
+	GLfloat temp = drone.pos.x / drone.pos.z;
+	if (abs(drone.pos.x) < 0.01 || abs(drone.pos.z) < 0.01)
+		temp = 0;
 
-	//	renderView = rotate(renderView, -angle_x, vec3(1, 0, 0));
-	//	renderView = rotate(renderView, radians(angle_y), vec3(0, 1, 0));
+	vec3 cameraPos = mat3(rotate(mat4(1.f), -radians(drone.orient.y), vec3(0.f, 1.f, 0.f))) * vec3(0.f, (1.2f * drone.droneScale), -(3.f * drone.droneScale)) + drone.pos;
 
-	//}
-	if (controlMode == 2)
-	{
-		GLfloat temp = drone.pos.x / drone.pos.z;
-		if (abs(drone.pos.x) < 0.01 || abs(drone.pos.z) < 0.01)
-			temp = 0;
-
-		vec3 cameraPos = mat3(rotate(mat4(1.f), -radians(drone.orient.y), vec3(0.f, 1.f, 0.f))) * vec3(0.f, (1.2f * drone.droneScale), -(3.f * drone.droneScale)) + drone.pos;
-
-		renderView = lookAt(
-			cameraPos,
-			vec3(drone.pos.x, drone.pos.y, drone.pos.z),
-			vec3(0, 1, 0)  
-		);
-	}
+	renderView = lookAt(
+		cameraPos,
+		vec3(drone.pos.x, drone.pos.y, drone.pos.z),
+		vec3(0, 1, 0)  
+	);
 
 	// render shadow maps
 	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -669,63 +584,61 @@ void display()
 	vec3 pos = vec3(0), orient = vec3(0);
 
 
-	if (controlMode == 2)
+	if (moveY > 0 && drone.pos.y < maxY)
 	{
-		if (moveY > 0 && drone.pos.y < maxY)
-		{
-			pos.y += moveY;
-		}
-		else if (moveY < 0 && drone.pos.y > minY)
-		{
-			pos.y += moveY;
-		}
-
-		if (moveZ > 0 && drone.pos.z < minmaxXZ && drone.pos.y > minY)
-		{
-			pos.z += moveZ;
-			orient.x = - modelAngleChange;
-		}
-		else if (moveZ < 0 && drone.pos.z > -minmaxXZ && drone.pos.y > minY)
-		{
-			pos.z = moveZ;
-			orient.x = modelAngleChange;
-		}
-		else
-		{
-			if (drone.orient.x > 0)
-				orient.x -= modelAngleChange;
-			if (drone.orient.x < 0)
-				orient.x += modelAngleChange;
-		}
-
-
-		if (moveX > 0 && drone.pos.x < minmaxXZ && drone.pos.y > minY)
-		{
-			//drone.pos.x += moveX;
-			orient.z = modelAngleChange;
-			orient.y = -0.5 * modelAngleChange;
-		}
-		else if (moveX < 0 && drone.pos.x > -minmaxXZ && drone.pos.y > minY)
-		{
-			//drone.pos.x += moveX;
-			orient.z = -modelAngleChange;
-			orient.y = 0.5 * modelAngleChange;
-		}
-		else
-		{
-			if (drone.orient.z > 0)
-				orient.z -= modelAngleChange;
-			if (drone.orient.z < 0)
-				orient.z += modelAngleChange;
-		}
-
-		drone.move(pos, orient);
-
-		if (drone.pos.y > minY)
-		{
-			drone.spinMotor();
-		}
+		pos.y += moveY;
 	}
+	else if (moveY < 0 && drone.pos.y > minY)
+	{
+		pos.y += moveY;
+	}
+
+	if (moveZ > 0 && drone.pos.z < minmaxXZ && drone.pos.y > minY)
+	{
+		pos.z += moveZ;
+		orient.x = - modelAngleChange;
+	}
+	else if (moveZ < 0 && drone.pos.z > -minmaxXZ && drone.pos.y > minY)
+	{
+		pos.z = moveZ;
+		orient.x = modelAngleChange;
+	}
+	else
+	{
+		if (drone.orient.x > 0)
+			orient.x -= modelAngleChange;
+		if (drone.orient.x < 0)
+			orient.x += modelAngleChange;
+	}
+
+
+	if (moveX > 0 && drone.pos.x < minmaxXZ && drone.pos.y > minY)
+	{
+		//drone.pos.x += moveX;
+		orient.z = modelAngleChange;
+		orient.y = -0.5 * modelAngleChange;
+	}
+	else if (moveX < 0 && drone.pos.x > -minmaxXZ && drone.pos.y > minY)
+	{
+		//drone.pos.x += moveX;
+		orient.z = -modelAngleChange;
+		orient.y = 0.5 * modelAngleChange;
+	}
+	else
+	{
+		if (drone.orient.z > 0)
+			orient.z -= modelAngleChange;
+		if (drone.orient.z < 0)
+			orient.z += modelAngleChange;
+	}
+
+	drone.move(pos, orient);
+
+	if (drone.pos.y > minY)
+	{
+		drone.spinMotor();
+	}
+
 }
 
 /* Called whenever the window is resized. The new window size is given, in pixels. */
@@ -737,203 +650,68 @@ static void reshape(GLFWwindow* window, int w, int h)
 	windowHeight = h;
 }
 
-/* change view angle, exit upon ESC */
+
 static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods)
 {
-	/* Enable this call if you want to disable key responses to a held down key*/
-	//if (action != GLFW_PRESS) return;
 
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-	bool modeChanged = false;
-	// sets the control mode
-	if (key == '1')
-	{
-		controlMode = 1; // close view
-		modeChanged = true;
-	}
-	if (key == '2')
-	{
-		controlMode = 2; // fly mode
-		modeChanged = true;
-	}
-	if (key == '3')
-	{
-		controlMode = 3; // fly mode
-		modeChanged = true;
-	}
+
 	if (key == 'G')
 	{
 		tree.generate("F[[-F]F[+F]]", 4);
 	}
-	
 
-	if (modeChanged)
+
+	if (key == 'A')//left
 	{
-		cout << "mode Changed" << endl;
-		/*if (controlMode == 1)
-		{
-			angle_inc_x = 0;
-			angle_inc_y = 0.05;
-			angle_inc_z = 0;
-
-			angle_x = 0;
-			angle_y = 0;
-			angle_z = 0;
-
-			modelAngle_x = 0;
-			modelAngle_y = 0;
-			modelAngle_z = 0;
-
-			model_scale = 1.5f;
-
-			x = 0;
-			y = -0.5;
-			z = 0;
-
-			motorAngleInc = 5;
-
-			lightsOn = true;
-		}*/
-		if (controlMode == 2)
-		{
-			/*angle_inc_x = 0;
-			angle_inc_y = 0;
-			angle_inc_z = 0;
-
-			angle_x = 0;
-			angle_y = 0;
-			angle_z = 0;
-
-			modelAngle_x = 0;
-			modelAngle_y = 0;
-			modelAngle_z = 0;
-
-			model_scale = 1.f;
-
-			x = 0;
-			y = 0;
-			z = 4;*/
-
-			lightsOn = true;
-		}
-	}
-
-
-
-	//if (controlMode == 1)
-	//{
-	//	if (key == 'A')//left
-	//	{
-	//		angle_inc_y += speed;
-	//	}
-	//	else if (key == 'D')//right
-	//	{
-	//		angle_inc_y -= speed;
-	//	}
-
-	//	if (key == 'W')//Up
-	//	{
-	//		if (angle_x < 1.57) // about 90deg
-	//			angle_x += speed;
-
-	//	}
-	//	else if (key == 'S')//Down
-	//	{
-	//		if (angle_x > 0)
-	//			angle_x -= speed;
-	//	}
-
-	//	if (key == 'E')// zoom in
-	//	{
-	//		model_scale += speed;
-
-	//	}
-	//	else if (key == 'Q')// zoom out
-	//	{
-	//		model_scale -= speed;
-	//	}
-
-	//	if (key == 'R')// prop speed up
-	//	{
-	//		motorAngleInc += 1;
-
-	//	}
-	//	else if (key == 'T')// prop speed down
-	//	{
-	//		motorAngleInc -= 1;
-	//	}
-	//}
-	if (controlMode == 2)
-	{
-		if (key == 'A')//left
-		{
-			if (action == GLFW_PRESS)
-				moveX = speed; 
-			if (action == GLFW_RELEASE)
-				moveX = 0;
+		if (action == GLFW_PRESS)
+			moveX = speed; 
+		if (action == GLFW_RELEASE)
+			moveX = 0;
 			
-		}
-		else if (key == 'D')//right
-		{
-			if (action == GLFW_PRESS)
-				moveX = -speed;
-			if (action == GLFW_RELEASE)
-				moveX = 0;
-		}
-
-		if (key == 'W')//forward
-		{
-			if (action == GLFW_PRESS)
-				moveZ = speed;
-			if (action == GLFW_RELEASE)
-				moveZ = 0;
-
-		}
-		else if (key == 'S')//back
-		{
-			if (action == GLFW_PRESS)
-				moveZ = -speed;
-			if (action == GLFW_RELEASE)
-				moveZ = 0;
-		}
-
-		if (key == 'E')//up
-		{
-			if (action == GLFW_PRESS)
-				moveY = speed;
-			if (action == GLFW_RELEASE)
-				moveY = 0;
-
-		}
-		else if (key == 'Q')//down
-		{
-			if (action == GLFW_PRESS)
-				moveY = -speed;
-			if (action == GLFW_RELEASE)
-				moveY = 0;
-		}
 	}
-	/*else
+	else if (key == 'D')//right
 	{
-		if (key == 'Q') angle_inc_x -= speed;
-		if (key == 'W') angle_inc_x += speed;
-		if (key == 'E') angle_inc_y -= speed;
-		if (key == 'R') angle_inc_y += speed;
-		if (key == 'T') angle_inc_z -= speed;
-		if (key == 'Y') angle_inc_z += speed;
-		if (key == 'A') model_scale -= speed / 0.5f;
-		if (key == 'S') model_scale += speed / 0.5f;
+		if (action == GLFW_PRESS)
+			moveX = -speed;
+		if (action == GLFW_RELEASE)
+			moveX = 0;
+	}
 
-		if (key == '7') vx -= 1.f;
-		if (key == '8') vx += 1.f;
-		if (key == '9') vy -= 1.f;
-		if (key == '0') vy += 1.f;
-		if (key == 'O') vz -= 1.f;
-		if (key == 'P') vz += 1.f;
-	}*/
+	if (key == 'W')//forward
+	{
+		if (action == GLFW_PRESS)
+			moveZ = speed;
+		if (action == GLFW_RELEASE)
+			moveZ = 0;
 
-	/* Cycle between drawing vertices, mesh and filled polygons */
+	}
+	else if (key == 'S')//back
+	{
+		if (action == GLFW_PRESS)
+			moveZ = -speed;
+		if (action == GLFW_RELEASE)
+			moveZ = 0;
+	}
+
+	if (key == 'E')//up
+	{
+		if (action == GLFW_PRESS)
+			moveY = speed;
+		if (action == GLFW_RELEASE)
+			moveY = 0;
+
+	}
+	else if (key == 'Q')//down
+	{
+		if (action == GLFW_PRESS)
+			moveY = -speed;
+		if (action == GLFW_RELEASE)
+			moveY = 0;
+	}
+
+	// turn drone lights on/ off
 	if (key == 'F' && action == GLFW_RELEASE )
 	{
 		lightsOn = !lightsOn;

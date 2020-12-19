@@ -1,6 +1,8 @@
 /* cube.h
  Example class to create a generic cube object
  Iain Martin October 2018
+
+ modified to make the cube size = 1 rather than 0.5
 */
 
 #include "cubev2.h"

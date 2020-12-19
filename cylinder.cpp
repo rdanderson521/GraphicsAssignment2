@@ -110,13 +110,6 @@ void Cylinder::makeCylinder(GLuint numSegments, float topSize)
 		pindices[(indicesPerDisk * 2) + (i * 2) + 1] = (verticesPerDisk * 2) + this->numSegments + (i % this->numSegments);
 	}
 
-	for (int i = 0; i < numindices; i++)
-	{
-		//pindices[i] = i;
-		std::cout << "index " << i << ": " << pindices[i] << std::endl;
-	}
-
-
 	// Generate a buffer for the indices
 	glGenBuffers(1, &elementbuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
@@ -223,26 +216,20 @@ CylinderAttribArrays* Cylinder::getCylinderAttribs(GLuint numSegments, float top
 
 void Cylinder::drawCylinder(int drawmode)
 {
-	//GLuint i;
-
-	/* Draw the vertices as GL_POINTS */
 	glBindBuffer(GL_ARRAY_BUFFER, this->cylinderBufferObject);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 
-	/* Bind the sphere normals */
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, this->cylinderNormals);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-	/* Bind the sphere colours */
 	glBindBuffer(GL_ARRAY_BUFFER, this->cylinderColours);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
 
 	glPointSize(3.f);
 
-	// Enable this line to show model in wireframe
 	if (drawmode == 1)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	else
@@ -254,7 +241,6 @@ void Cylinder::drawCylinder(int drawmode)
 	}
 	else
 	{
-		/* Bind the indexed vertex buffer */
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
 
 
@@ -271,7 +257,6 @@ void Cylinder::makeUnitCylinder(GLfloat* pVertices, GLfloat* pTextures)
 	float segmentAngleIncrement = (2 * PI) / this->numSegments;
 
 	int numVerticesPerDisk = this->numSegments + 1;
-
 
 	// centre point
 	pVertices[0] = 0.f;

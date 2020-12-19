@@ -41,14 +41,19 @@ public:
 	
 	DroneUniforms u;
 
+	// initialises drone
 	void init(DroneUniforms uniforms, GLuint tex, GLuint rough, glm::vec3 pos = glm::vec3(0.f), glm::vec3 orient = glm::vec3(0.f));
 
+	// renders the drone
 	void draw(int drawmode, GLuint programID, glm::mat4 view);
 
+	// adds the lights on the drone to the lights uniform block to be sent to the shader programs
 	void setLightUniforms(LightsUniformWrapper& uniforms, glm::mat4 view);
 
+	// rotates the motors
 	void spinMotor();
 
+	// moves the drone relative to its current orientation
 	void move(glm::vec3 pos, glm::vec3 orient);
 
 private:
@@ -75,6 +80,7 @@ private:
 	GLfloat motorStatorReflect = 2.f;
 	GLfloat standoffReflect = 1.f;
 
+	// the global transformation of the whole drone
 	void globalTransformations(std::stack<glm::mat4>& model);
 };
 
