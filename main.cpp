@@ -384,8 +384,6 @@ void render(mat4& view, GLuint programID)
 		glUniform1i(useTextureID[programID], 1);
 		glUniform1i(useRoughnessID[programID], 1);
 
-		//std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
 		for (int i = 0; i < treeLocations.size(); i++)
 		{
 			model.push(model.top());
@@ -489,6 +487,7 @@ void display()
 		vec3(0, 1, 0)  
 	);
 
+
 	// render shadow maps
 	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -507,9 +506,10 @@ void display()
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glUseProgram(0);
-	
-	// render actual view
 
+
+	
+	// render camera view
 	glViewport(0, 0, windowWidth, windowHeight);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -533,16 +533,8 @@ void display()
 
 	lightsUniformBlock.bind(LIGHT_PARAMS_BINDING);
 
-	// Send our projection and view uniforms to the currently bound shader
-	// I do that here because they are the same for all objects
-	//glUniform1ui(colourModeID[MAIN_PROGRAM], colourmode);
 	glUniformMatrix4fv(viewID[MAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
 	glUniformMatrix4fv(projectionID[MAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
-	//glUniformMatrix4fv(lightSpaceMatrixID[MAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
-	
-	/*glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glUniform1i(shadowMapID[MAIN_PROGRAM], 5);*/
 
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
@@ -550,23 +542,16 @@ void display()
 
 
 	render(renderView,MAIN_PROGRAM);
-	//renderTerrain(renderView, MAIN_PROGRAM);
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 
-	//resetLights();
-	//directionalLight.setUniforms(lightsUniformBlock);
-
-	// Send our projection and view uniforms to the currently bound shader
-	// I do that here because they are the same for all objects
-	//glUniform1ui(colourModeID[TERRAIN_PROGRAM], colourmode);
 	glUniformMatrix4fv(viewID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
 	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
-	//glUniformMatrix4fv(lightSpaceMatrixID[TERRAIN_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
 
+	// binds textures
 	glActiveTexture(GL_TEXTURE0 + numTerrainTextures*2);
-	//glBindTexture(GL_TEXTURE_2D, depthMap);
-	//glUniform1i(shadowMapID[TERRAIN_PROGRAM], numTerrainTextures * 2);
+
+	// binds depth map
 	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
 	glUniform1i(dirShadowMapArrayID[TERRAIN_PROGRAM], numTerrainTextures * 2);
 
