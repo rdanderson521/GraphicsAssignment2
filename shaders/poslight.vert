@@ -39,19 +39,13 @@ layout (std140) uniform lightParams	{
 } lights;
 
 uniform mat4 model, view, projection;
-uniform uint colourMode;
 uniform vec4 colourOverride;
 
 void main()
 {
-	if (colourMode == 1)
-	{
-		vOut.vertexColour = colourOverride;
-	}
-	else
-	{
-		vOut.vertexColour = colour;
-	}
+
+	vOut.vertexColour = colourOverride;
+
 	vOut.pos = vec3(model * vec4(position, 1.f));
 	vOut.normal = normal; 
 	for (int i = 0; i < lights.numLights; i++)

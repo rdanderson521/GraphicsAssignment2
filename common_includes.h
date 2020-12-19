@@ -27,14 +27,16 @@ enum textures
 	totalNumTextures
 };
 
+
+// the uniforms needed by the drone class for rendering
 struct DroneUniforms
 {
-	GLuint textureID[NUM_PROGRAMS],
-		roughnessID[NUM_PROGRAMS],
-		useTextureID[NUM_PROGRAMS],
-		useRoughnessID[NUM_PROGRAMS],
-		modelID[NUM_PROGRAMS],
-		normalMatrixID[NUM_PROGRAMS],
-		colourOverrideID[NUM_PROGRAMS],
-		reflectivenessID[NUM_PROGRAMS];
+	GLuint *textureID,
+		*roughnessID,
+		*useTextureID,
+		*useRoughnessID,
+		*modelID,
+		*normalMatrixID,
+		*colourOverrideID,
+		*reflectivenessID;
 };

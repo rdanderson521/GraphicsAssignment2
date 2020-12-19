@@ -6,12 +6,19 @@ using namespace glm;
 using namespace std;
 
 
-void Drone::init()
+void Drone::init(DroneUniforms uniforms, GLuint tex, GLuint rough, vec3 pos, vec3 orient)
 {
 	motorBell.makeTube(20, 0.1);
-	motorStator.makeCylinder(20);
-	cylinder.makeCylinder(8, 0.7);
+	motorStator.makeCylinder(15);
+	cylinder.makeCylinder(8);
 	cube.makeCube();
+
+	this->u = uniforms;
+	this->frameTexture = tex;
+	this->frameRoughnessMap = rough;
+	this->pos = pos;
+	this->orient = orient;
+	this->droneScale = 1.f;
 }
 
 
@@ -22,21 +29,10 @@ void Drone::setLightUniforms(LightsUniformWrapper& uniforms, mat4 view)
 
 	model.push(model.top());
 	{
-		model.top() = translate(model.top(), this->pos); // translating xyz
-
-		// rotates the model after transforming it so these transformations do not affect the translation
-		model.top() = rotate(model.top(), -radians(this->orient.x), glm::vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-		model.top() = rotate(model.top(), -radians(this->orient.y), glm::vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-		model.top() = rotate(model.top(), -radians(this->orient.z), glm::vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
-
-		model.top() = rotate(model.top(), -radians(90.f), glm::vec3(0, 1, 0)); //rotates 90 degrees to align the drone along the axis which make controls easier
-
-		model.top() = scale(model.top(), vec3(this->droneScale, this->droneScale, this->droneScale));//scale equally in all axis
-
+		this->globalTransformations(model);
 
 		for (int i = 0; i < 4; i++)
 		{
-			/* Draw a small sphere in the lightsource position to visually represent the light source */
 			model.push(model.top());
 			{
 				model.top() = rotate(model.top(), -radians((90 * i) + 45.f), glm::vec3(0, 1, 0));
@@ -60,6 +56,22 @@ void Drone::setLightUniforms(LightsUniformWrapper& uniforms, mat4 view)
 }
 
 
+void Drone::globalTransformations(std::stack<glm::mat4>& model)
+{
+	// global transformations for whole drone
+	model.top() = translate(model.top(), this->pos); // translating xyz
+
+	// rotates the model after transforming it so these transformations do not affect the translation
+	model.top() = rotate(model.top(), -radians(this->orient.x), glm::vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
+	model.top() = rotate(model.top(), -radians(this->orient.y), glm::vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
+	model.top() = rotate(model.top(), -radians(this->orient.z), glm::vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
+
+	model.top() = rotate(model.top(), -radians(90.f), glm::vec3(0, 1, 0)); //rotates 90 degrees to align the drone along the axis which make controls easier
+
+	model.top() = scale(model.top(), vec3(this->droneScale, this->droneScale, this->droneScale));//scale equally in all axis
+}
+
+
 void Drone::draw(int drawmode, GLuint programID, mat4 view)
 {
 	mat3 normalmatrix;
@@ -68,18 +80,9 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 	model.push(mat4(1.0f));
 
 	model.push(model.top());
-	{
-		model.top() = translate(model.top(), this->pos); // translating xyz
-
-		// rotates the model after transforming it so these transformations do not affect the translation
-		model.top() = rotate(model.top(), -radians(this->orient.x), glm::vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-		model.top() = rotate(model.top(), -radians(this->orient.y), glm::vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-		model.top() = rotate(model.top(), -radians(this->orient.z), glm::vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
-
-		model.top() = rotate(model.top(), -radians(90.f), glm::vec3(0, 1, 0)); //rotates 90 degrees to align the drone along the axis which make controls easier
-
-		model.top() = scale(model.top(), vec3(this->droneScale, this->droneScale, this->droneScale));//scale equally in all axis
-
+	{	
+		
+		this->globalTransformations(model);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, frameTexture);
@@ -95,13 +98,10 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 		// frame top and bottom plates
 		model.push(model.top());
 		{
-
 			model.top() = translate(model.top(), vec3(0.f, -0.085f, 0.f));
 			model.top() = scale(model.top(), framePlateScale);
 
-			// Send the model uniform and normal matrix to the currently bound shader,
 			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-			// Recalculate the normal matrix and send to the vertex shader
 			normalmatrix = transpose(inverse(mat3(view * model.top())));
 			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -114,9 +114,7 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 			model.top() = translate(model.top(), vec3(0.f, 0.085f, 0.f));
 			model.top() = scale(model.top(), framePlateScale);
 
-			// Send the model uniform and normal matrix to the currently bound shader,
 			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-			// Recalculate the normal matrix and send to the vertex shader
 			normalmatrix = transpose(inverse(mat3(view * model.top())));
 			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -133,9 +131,7 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 				model.top() = translate(model.top(), vec3(0.45f, -0.1f, 0.f));
 				model.top() = scale(model.top(), frameArmScale);
 
-				// Send the model uniform and normal matrix to the currently bound shader,
 				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-				// Recalculate the normal matrix and send to the vertex shader
 				normalmatrix = transpose(inverse(mat3(view * model.top())));
 				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -143,7 +139,7 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 			}
 			model.pop();
 		}
-
+		// end of frame
 		glUniform1i(u.useTextureID[programID], 0);
 		glUniform1i(u.useRoughnessID[programID], 0);
 
@@ -160,10 +156,12 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 					model.top() = translate(model.top(), vec3(0.77f, -0.02f, 0.f));
 
 
-					// moving bits
+					// spinning motor bits
+
+					glUniform1f(u.reflectivenessID[programID], motorReflect);
+					glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
 					model.push(model.top());
 					{
-
 						if (i % 2 == 0)
 						{
 							model.top() = rotate(model.top(), -radians(motorAngle), glm::vec3(0, 1, 0));
@@ -181,6 +179,8 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 								model.push(model.top());
 								{
 									model.top() = rotate(model.top(), -radians(120.f * j), glm::vec3(0, 1, 0));
+
+									// propellers
 									model.push(model.top());
 									{
 										if (i % 2 == 0)
@@ -194,31 +194,21 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 										model.top() = translate(model.top(), vec3(0.15f, 0.03f, 0.f));
 										model.top() = scale(model.top(), vec3(0.3f, 0.01f, 0.05f));
 
-										// set the reflectiveness uniform
-										glUniform1f(u.reflectivenessID[programID], motorReflect);
-										// set the colour uniform
-										glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-										// Send the model uniform and normal matrix to the currently bound shader,
 										glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-										// Recalculate the normal matrix and send to the vertex shader
 										normalmatrix = transpose(inverse(mat3(view * model.top())));
 										glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
 										cube.drawCube(drawmode);
 									}
 									model.pop();
+
+									// strut at top of motor
 									model.push(model.top());
 									{
 										model.top() = translate(model.top(), vec3(0.015f, 0.f, 0.f));
 										model.top() = scale(model.top(), motorStrutsScale);
 
-										// set the reflectiveness uniform
-										glUniform1f(u.reflectivenessID[programID], motorReflect);
-										// set the colour uniform
-										glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-										// Send the model uniform and normal matrix to the currently bound shader,
 										glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-										// Recalculate the normal matrix and send to the vertex shader
 										normalmatrix = transpose(inverse(mat3(view * model.top())));
 										glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -230,13 +220,7 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 										model.top() = translate(model.top(), vec3(-0.015f, 0.f, 0.f));
 										model.top() = scale(model.top(), motorStrutsScale);
 
-										// set the reflectiveness uniform
-										glUniform1f(u.reflectivenessID[programID], motorReflect);
-										// set the colour uniform
-										glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-										// Send the model uniform and normal matrix to the currently bound shader,
 										glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-										// Recalculate the normal matrix and send to the vertex shader
 										normalmatrix = transpose(inverse(mat3(view * model.top())));
 										glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -250,19 +234,15 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 						model.pop();
 
 						// motor shaft
+						glUniform1f(u.reflectivenessID[programID], motorReflect);
+						glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
+
 						model.push(model.top());
 						{
 							model.top() = translate(model.top(), vec3(0.f, 0.06f, 0.f));
 							model.top() = scale(model.top(), motorShaftScale);
-							model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
 
-							// set the reflectiveness uniform
-							glUniform1f(u.reflectivenessID[programID], motorReflect);
-							// set the colour uniform
-							glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-							// Send the model uniform and normal matrix to the currently bound shader,
 							glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-							// Recalculate the normal matrix and send to the vertex shader
 							normalmatrix = transpose(inverse(mat3(view * model.top())));
 							glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -276,13 +256,7 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 							model.top() = scale(model.top(), motorBellScale);
 							model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
 
-							// set the reflectiveness uniform
-							glUniform1f(u.reflectivenessID[programID], motorReflect);
-							// set the colour uniform
-							glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-							// Send the model uniform and normal matrix to the currently bound shader,
 							glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-							// Recalculate the normal matrix and send to the vertex shader
 							normalmatrix = transpose(inverse(mat3(view * model.top())));
 							glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -293,18 +267,14 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 					model.pop();
 
 					// motor base 
+					glUniform1f(u.reflectivenessID[programID], motorReflect);
+					glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
 					model.push(model.top());
 					{
 						model.top() = translate(model.top(), vec3(0.f, -0.06f, 0.f));
 						model.top() = scale(model.top(), vec3(0.12f, 0.01f, 0.04f));
 
-						// set the reflectiveness uniform
-						glUniform1f(u.reflectivenessID[programID], motorReflect);
-						// set the colour uniform
-						glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-						// Send the model uniform and normal matrix to the currently bound shader,
 						glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-						// Recalculate the normal matrix and send to the vertex shader
 						normalmatrix = transpose(inverse(mat3(view * model.top())));
 						glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -317,13 +287,7 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 						model.top() = translate(model.top(), vec3(0.f, -0.06f, 0.f));
 						model.top() = scale(model.top(), vec3(0.04f, 0.01f, 0.12f));
 
-						// set the reflectiveness uniform
-						glUniform1f(u.reflectivenessID[programID], motorReflect);
-						// set the colour uniform
-						glUniform4fv(u.colourOverrideID[programID], 1, &motorColour[0]);
-						// Send the model uniform and normal matrix to the currently bound shader,
 						glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-						// Recalculate the normal matrix and send to the vertex shader
 						normalmatrix = transpose(inverse(mat3(view * model.top())));
 						glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -336,15 +300,12 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 					{
 						model.top() = translate(model.top(), vec3(0.f, -0.015f, 0.f));
 						model.top() = scale(model.top(), motorStatorScale);
-						model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
+						//model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
 
-						// set the reflectiveness uniform
 						glUniform1f(u.reflectivenessID[programID], motorStatorReflect);
-						// set the colour uniform
 						glUniform4fv(u.colourOverrideID[programID], 1, &motorStatorColour[0]);
-						// Send the model uniform and normal matrix to the currently bound shader,
+
 						glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-						// Recalculate the normal matrix and send to the vertex shader
 						normalmatrix = transpose(inverse(mat3(view * model.top())));
 						glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
@@ -359,156 +320,129 @@ void Drone::draw(int drawmode, GLuint programID, mat4 view)
 		}
 
 		// standoffs
+		glUniform1f(u.reflectivenessID[programID], standoffReflect);
+		glUniform4fv(u.colourOverrideID[programID], 1, &standoffColour[0]);
+
+		model.push(model.top());
 		{
+			model.top() = translate(model.top(), vec3(0.45f, 0.00f, 0.12f));
+			model.top() = scale(model.top(), standoffScale);
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
 
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(0.45f, 0.00f, 0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
 
-				// set the reflectiveness uniform
-				glUniform1f(u.reflectivenessID[programID], standoffReflect);
-				// set the colour uniform
-				glUniform4fv(u.colourOverrideID[programID], 1, &standoffColour[0]);
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(0.2f, 0.00f, 0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(-0.2f, 0.00f, 0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(-0.45f, 0.00f, 0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(0.45f, 0.00f, -0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(0.2f, 0.00f, -0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(-0.2f, 0.00f, -0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
-			model.push(model.top());
-			{
-				model.top() = translate(model.top(), vec3(-0.45f, 0.00f, -0.12f));
-				model.top() = scale(model.top(), standoffScale);
-				model.top() = rotate(model.top(), -radians(90.f), glm::vec3(1, 0, 0));
-
-				// Send the model uniform and normal matrix to the currently bound shader,
-				glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
-
-				// Recalculate the normal matrix and send to the vertex shader
-				normalmatrix = transpose(inverse(mat3(view * model.top())));
-				glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
-
-				/* Draw our cube*/
-				cylinder.drawCylinder(drawmode);
-			}
-			model.pop();
-
+			cylinder.drawCylinder(drawmode);
 		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(0.2f, 0.00f, 0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(-0.2f, 0.00f, 0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(-0.45f, 0.00f, 0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(0.45f, 0.00f, -0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(0.2f, 0.00f, -0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(-0.2f, 0.00f, -0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		model.push(model.top());
+		{
+			model.top() = translate(model.top(), vec3(-0.45f, 0.00f, -0.12f));
+			model.top() = scale(model.top(), standoffScale);
+
+			glUniformMatrix4fv(u.modelID[programID], 1, GL_FALSE, &(model.top()[0][0]));
+
+			normalmatrix = transpose(inverse(mat3(view * model.top())));
+			glUniformMatrix3fv(u.normalMatrixID[programID], 1, GL_FALSE, &normalmatrix[0][0]);
+
+			cylinder.drawCylinder(drawmode);
+		}
+		model.pop();
+
+		
 	}
 	model.pop();
+}
+
+
+void Drone::spinMotor()
+{
+	this->motorAngle += MOTOR_RATE;
+	if (this->motorAngle > 360)
+		this->motorAngle -= 360;
 }
