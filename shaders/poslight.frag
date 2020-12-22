@@ -3,16 +3,18 @@
 
 #version 420 core
 
-#define MAX_LIGHTS 20
+#define MAX_LIGHTS 5
+#define NUM_FAR_PLANES 3
 
 in VERTEX_OUT
 {
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 fragLightSpace[MAX_LIGHTS];
+	vec4 fragLightSpace[MAX_LIGHTS*NUM_FAR_PLANES];
 	vec2 texCoord;
 	mat4 modelView;
+	uint cascadingIdx;
 } fIn;
 
 out vec4 outputColor;
@@ -21,8 +23,9 @@ uniform vec3 viewPos;
 uniform mat4 model, view, projection;
 uniform mat3 normalMatrix;
 
-uniform sampler2D shadowMap;
+//uniform sampler2D shadowMap;
 uniform sampler2DArray shadowMapArr;
+uniform float farPlanes[NUM_FAR_PLANES];
 
 
 uniform sampler2D tex;
@@ -37,11 +40,11 @@ uniform vec3 emitColour;
 layout (std140) uniform lightParams	{
 	vec3 lightPos[MAX_LIGHTS];
 	uint lightMode[MAX_LIGHTS];
-	mat4 lightSpace[MAX_LIGHTS];
+	mat4 lightSpace[MAX_LIGHTS * NUM_FAR_PLANES];
 	vec3 lightColour[MAX_LIGHTS];
 	vec3 attenuationParams[MAX_LIGHTS];
 	uint shadowIdx[MAX_LIGHTS];
-	uint cascading[MAX_LIGHTS];
+	bool cascading[MAX_LIGHTS];
 	uint numLights;
 } lights;
 
@@ -61,7 +64,22 @@ float shadowCalculation(int lightIdx)
 
 	projCoords = projCoords * 0.5 + 0.5;
 
-	float closestDepth = texture(shadowMapArr, vec3(projCoords.xy,lightIdx)).r;
+	float closestDepth = 0.f;
+
+	if (lights.cascading[lightIdx] == true)
+	{
+		uint idx = 0;//fIn.cascadingIdx;
+		
+		lightSpace = fIn.fragLightSpace[idx];
+		projCoords = lightSpace.xyz / lightSpace.w;
+		projCoords = projCoords * 0.5 + 0.5;
+
+		closestDepth = texture(shadowMapArr, vec3(projCoords.xy, lights.shadowIdx[lightIdx] + idx)).r;
+	}
+	else
+	{
+		closestDepth = texture(shadowMapArr, vec3(projCoords.xy,lights.shadowIdx[lightIdx])).r;
+	}
 
 	float currentDepth = projCoords.z; 
 	float bias = 0.005;

@@ -4,7 +4,8 @@
 // Specify minimum OpenGL version
 #version 420 core
 
-#define MAX_LIGHTS 20
+#define MAX_LIGHTS 5
+#define NUM_FAR_PLANES 3
 
 // Define the vertex attributes
 layout(location = 0) in vec3 position;
@@ -20,9 +21,10 @@ out VERTEX_OUT
 	vec3 pos;
 	vec3 normal;
 	vec4 vertexColour;
-	vec4 fragLightSpace[MAX_LIGHTS];
+	vec4 fragLightSpace[MAX_LIGHTS * NUM_FAR_PLANES];
 	vec2 texCoord;
 	mat4 modelView;
+	uint cascadingIdx;
 } vOut;
 
 
@@ -32,16 +34,17 @@ out VERTEX_OUT
 layout (std140) uniform lightParams	{
 	vec3 lightPos[MAX_LIGHTS];
 	uint lightMode[MAX_LIGHTS];
-	mat4 lightSpace[MAX_LIGHTS];
+	mat4 lightSpace[MAX_LIGHTS * NUM_FAR_PLANES];
 	vec3 lightColour[MAX_LIGHTS];
 	vec3 attenuationParams[MAX_LIGHTS];
 	uint shadowIdx[MAX_LIGHTS];
-	uint cascading[MAX_LIGHTS];
+	bool cascading[MAX_LIGHTS];
 	uint numLights;
 } lights;
 
 uniform mat4 model, view, projection;
 uniform vec4 colourOverride;
+uniform float farPlanes[NUM_FAR_PLANES];
 
 void main()
 {
@@ -57,6 +60,14 @@ void main()
 	vOut.texCoord = texCoord;
 
 	vOut.modelView =  view * model;
+
+	uint idx = 0;
+	float zpos = (view * vec4(vOut.pos,1.f)).z;
+	while ( idx < (NUM_FAR_PLANES - 1) && abs(zpos) > farPlanes[idx])
+	{
+		idx++;
+	}
+	vOut.cascadingIdx = idx;
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);
 }

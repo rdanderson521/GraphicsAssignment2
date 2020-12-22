@@ -39,12 +39,9 @@ if you prefer */
 /* Define buffer object indices */
 GLuint elementbuffer;
 
-
-
 GLuint programs[NUM_PROGRAMS];		/* Identifier for the shader prgoram */
 GLuint vao;			/* Vertex array (Containor) object. This is the index of the VAO that will be the container for
 					   our buffer objects */
-
 
 // globals for shadow mapping
 //GLuint shadowProgram;	// shader program for shadow rendering
@@ -53,13 +50,7 @@ GLuint depthMapFBO; // depth map for shadows
 GLuint depthMap; // idx for texture for shadow map
 GLuint dirDepthMapArray; // idx for texture array for directional shadow map
 
-
-
 const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
-//GLuint shadowsModelID, shadowsLightSpaceMatrixID;
-
-//GLuint emitmode;
-//GLuint attenuationmode;
 
 /* Position and view globals */
 GLuint drawmode;			// Defines drawing mode of sphere as points, lines or filled polygons
@@ -67,7 +58,7 @@ GLfloat speed;				// movement increment
 GLfloat motorAngle;				
 GLfloat motorAngleInc;				
 bool lightsOn;
-
+bool useCascadingShadows;
 
 // globals for animation
 GLfloat modelAngle_x, modelAngle_y, modelAngle_z, modelAngleChange;
@@ -86,6 +77,7 @@ GLuint textureID[NUM_PROGRAMS], terrainTextureID[numTerrainTextures], terrainTex
 GLuint roughnessID[NUM_PROGRAMS], terrainRoughnessID[numTerrainTextures], useRoughnessID[NUM_PROGRAMS];
 GLuint lightParamsID[NUM_PROGRAMS];
 GLuint dirShadowMapArrayID[NUM_PROGRAMS];
+GLuint farPlanesID[NUM_PROGRAMS][NUM_FAR_PLANES];
 
 LightsUniformWrapper lightsUniformBlock;
 
@@ -126,6 +118,7 @@ void init(GLWrapperV2* glw)
 	//control mode 2 defaults
 	modelAngleChange = 2.f;
 	lightsOn = true;
+	useCascadingShadows = false;
 
 	lightsUniformBlock.resetLights();
 
@@ -244,6 +237,13 @@ void init(GLWrapperV2* glw)
 
 			useTextureID[i] = glGetUniformLocation(programs[i], "useTex");
 			useRoughnessID[i] = glGetUniformLocation(programs[i], "useRoughness");
+
+			for (int j = 0; j < NUM_FAR_PLANES; j++)
+			{
+				std::string str = "farPlanes[" + std::to_string(j) + "]";
+				farPlanesID[i][j] = glGetUniformLocation(programs[i], str.c_str());
+				glUniform1f(farPlanesID[i][j], std::pow(((float)(j + 1) / NUM_FAR_PLANES), 2.f)* (FAR_PLANE_DIST - 2.f) + 2.f);
+			}
 			if (i == MAIN_PROGRAM)
 			{
 				textureID[i] = glGetUniformLocation(programs[i], "tex");
@@ -269,7 +269,7 @@ void init(GLWrapperV2* glw)
 	}
 
 
-	tree.generate("F[[-F]F[+F]]", 4);
+	tree.generate("F[[-F]F[+F]]", 3);
 
 	directionalLight.dir = vec3(1.f, -2.5f, 2.f);
 
@@ -279,7 +279,7 @@ void init(GLWrapperV2* glw)
 	terrain->createObject();
 
 
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		int treeX = (rand() % 20) - 10, treeZ = (rand() % 20) - 10;
 		int treeY = terrain->heightAtPosition(treeX, treeZ);
@@ -473,7 +473,7 @@ void display()
 	mat4 renderView;
 
 
-	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, 20.f);
+	renderProjection = perspective(radians(60.f), aspect_ratio, 0.1f, FAR_PLANE_DIST);
 
 	GLfloat temp = drone.pos.x / drone.pos.z;
 	if (abs(drone.pos.x) < 0.01 || abs(drone.pos.z) < 0.01)
@@ -488,24 +488,70 @@ void display()
 	);
 
 
+
+
 	// render shadow maps
-	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glUseProgram(programs[SHADOW_PROGRAM]);
 
 	resetLights();
 
-	mat4 lightSpace = directionalLight.genLightProjView(renderView, renderProjection);
-	glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glUseProgram(programs[SHADOW_PROGRAM]);
 
-	glEnable(GL_DEPTH_CLAMP);
-	render(renderView,SHADOW_PROGRAM);
-	renderTerrain(renderView,SHADOW_PROGRAM);
-	glDisable(GL_DEPTH_CLAMP);
+	if (useCascadingShadows)
+	{
 
+		float currFarPlane, currNearPlane = 0.1f;
+		mat4 shadowView = renderView;
+
+		directionalLight.cascading = true;
+		directionalLight.lightSpace.resize(NUM_FAR_PLANES);
+
+
+		for (int i = 0; i < NUM_FAR_PLANES; i++)
+		{
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, dirDepthMapArray, 0, i);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			
+
+			currFarPlane = std::pow(((float)(i + 1) / NUM_FAR_PLANES), 2.f) * (FAR_PLANE_DIST - 2.f) + 2.f;
+			mat4 cascadingRenderProjection = perspective(radians(60.f), aspect_ratio, currNearPlane, currFarPlane);
+
+			mat4 lightSpace = directionalLight.genLightProjView(shadowView, cascadingRenderProjection, i);
+			glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
+			
+
+			glEnable(GL_DEPTH_CLAMP);
+			render(renderView, SHADOW_PROGRAM);
+			glDisable(GL_DEPTH_CLAMP);
+
+			shadowView = translate(shadowView, vec3(0.f, 0.f, currFarPlane - currNearPlane));
+			currNearPlane = currFarPlane;
+
+		}
+	}
+	else
+	{
+		directionalLight.lightSpace.resize(1);
+		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, dirDepthMapArray, 0, 0);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+
+		directionalLight.cascading = false;
+		mat4 lightSpace = directionalLight.genLightProjView(renderView, renderProjection);
+		glUniformMatrix4fv(lightSpaceMatrixID[SHADOW_PROGRAM], 1, GL_FALSE, &lightSpace[0][0]);
+		
+
+		glEnable(GL_DEPTH_CLAMP);
+		render(renderView, SHADOW_PROGRAM);
+		renderTerrain(renderView, SHADOW_PROGRAM);
+		glDisable(GL_DEPTH_CLAMP);
+	}
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glUseProgram(0);
+
+
 
 
 	
@@ -525,7 +571,7 @@ void display()
 	/* Make the compiled shader program current */
 	glUseProgram(programs[MAIN_PROGRAM]);
 
-	//resetLights();
+
 	lightsUniformBlock.resetLights();
 	directionalLight.setUniforms(lightsUniformBlock);
 	if (lightsOn)
@@ -544,6 +590,13 @@ void display()
 	render(renderView,MAIN_PROGRAM);
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
+
+	for (int j = 0; j < NUM_FAR_PLANES; j++)
+	{
+		//std::string str = "farPlanes[" + std::to_string(j) + "]";
+		//farPlanesID[TERRAIN_PROGRAM][j] = glGetUniformLocation(programs[TERRAIN_PROGRAM], str.c_str());
+		glUniform1f(farPlanesID[TERRAIN_PROGRAM][j], std::pow(((float)(j + 1) / NUM_FAR_PLANES), 2.f) * (FAR_PLANE_DIST - 2.f) + 2.f);
+	}
 
 	glUniformMatrix4fv(viewID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
 	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
@@ -645,6 +698,11 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	if (key == 'G')
 	{
 		tree.generate("F[[-F]F[+F]]", 4);
+	}
+
+	if (key == 'H' && action == GLFW_PRESS)
+	{
+		useCascadingShadows = !useCascadingShadows;
 	}
 
 

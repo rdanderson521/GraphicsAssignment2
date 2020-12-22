@@ -1,6 +1,8 @@
 #pragma once
 
-#define MAX_LIGHTS 20
+#define MAX_LIGHTS 5
+#define NUM_FAR_PLANES 3
+#define FAR_PLANE_DIST 25.f
 
 enum programID
 {

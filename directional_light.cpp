@@ -1,13 +1,16 @@
 #include "directional_light.h"
 
 #include <vector>
+#include <algorithm>
 
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <iostream>
 
 using namespace std;
 using namespace glm;
 
-glm::mat4 DirectionalLight::genLightProjView(glm::mat4 view, glm::mat4 proj)
+glm::mat4 DirectionalLight::genLightProjView(glm::mat4 view, glm::mat4 proj, int lightSpaceIdx)
 {
 	mat4 shadowView = glm::lookAt(
 		vec3(0.f, 0.f, 0.f),
@@ -57,13 +60,25 @@ glm::mat4 DirectionalLight::genLightProjView(glm::mat4 view, glm::mat4 proj)
 
 	mat4 shadowProjection = ortho(minBound.x, maxBound.x, minBound.y, maxBound.y, -maxBound.z - 5, -minBound.z);
 
-	this->lightSpace = shadowProjection * shadowView;
 
-	return this->lightSpace;
+	this->lightSpace.at(lightSpaceIdx) = shadowProjection * shadowView;
+
+	return this->lightSpace.at(lightSpaceIdx);
 }
 
 
 bool DirectionalLight::setUniforms(LightsUniformWrapper& uniform)
 {
-	return uniform.addDirectionalLight(this->dir, LightMode::DIRECTIONAL, this->lightSpace,vec3(1.f), vec3(1.2f,0.f,0.f));
+	for (int i = 0; i < this->lightSpace.size(); i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			for (int k = 0; k < 4; k++)
+				std::cout << this->lightSpace.at(i)[j][k] << " ";
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+	}
+		
+	return uniform.addDirectionalLight(this->dir, LightMode::DIRECTIONAL, this->lightSpace, this->cascading, vec3(1.f), vec3(1.2f,0.f,0.f));
 }
