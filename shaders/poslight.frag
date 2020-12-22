@@ -14,8 +14,9 @@ in VERTEX_OUT
 	vec4 fragLightSpace[MAX_LIGHTS*NUM_FAR_PLANES];
 	vec2 texCoord;
 	mat4 modelView;
-	uint cascadingIdx;
 } fIn;
+
+flat in uint cascadingIdx;
 
 out vec4 outputColor;
 
@@ -58,19 +59,16 @@ vec3 global_ambient = vec3(0.1, 0.1, 0.1);
 
 float shadowCalculation(int lightIdx)
 {
-	vec4 lightSpace = fIn.fragLightSpace[lightIdx];
-
-	vec3 projCoords = lightSpace.xyz / lightSpace.w;
-
-	projCoords = projCoords * 0.5 + 0.5;
+	vec4 lightSpace = vec4(1.f);
+	vec3 projCoords = vec3(1.f);
 
 	float closestDepth = 0.f;
 
 	if (lights.cascading[lightIdx] == true)
 	{
-		uint idx = 0;//fIn.cascadingIdx;
+		uint idx = cascadingIdx;
 		
-		lightSpace = fIn.fragLightSpace[idx];
+		lightSpace = fIn.fragLightSpace[(lightIdx * NUM_FAR_PLANES) + idx];
 		projCoords = lightSpace.xyz / lightSpace.w;
 		projCoords = projCoords * 0.5 + 0.5;
 
@@ -78,9 +76,11 @@ float shadowCalculation(int lightIdx)
 	}
 	else
 	{
+		lightSpace = fIn.fragLightSpace[lightIdx * NUM_FAR_PLANES];
+		projCoords = lightSpace.xyz / lightSpace.w;
+		projCoords = projCoords * 0.5 + 0.5;
 		closestDepth = texture(shadowMapArr, vec3(projCoords.xy,lights.shadowIdx[lightIdx])).r;
 	}
-
 	float currentDepth = projCoords.z; 
 	float bias = 0.005;
 	float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;

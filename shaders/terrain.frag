@@ -55,22 +55,16 @@ vec3 global_ambient = vec3(0.1, 0.1, 0.1);
 
 float shadowCalculation(int lightIdx)
 {
-	vec4 lightSpace = fIn.fragLightSpace[lightIdx * NUM_FAR_PLANES];
-	vec3 projCoords = lightSpace.xyz / lightSpace.w;
-	projCoords = projCoords * 0.5 + 0.5;
+	vec4 lightSpace = vec4(1.f);
+	vec3 projCoords = vec3(1.f);
 
 	float closestDepth = 0.f;
 
 	if (lights.cascading[lightIdx] == true)
 	{
-		uint idx = 0;cascadingIdx;
+		uint idx = cascadingIdx;
 		
-		float zpos = gl_FragCoord.z * farPlanes[NUM_FAR_PLANES - 1];
-		while ( idx < (NUM_FAR_PLANES - 1) && abs(zpos) > farPlanes[idx])
-		{
-			idx += 1;
-		}
-		lightSpace = fIn.fragLightSpace[idx];
+		lightSpace = fIn.fragLightSpace[(lightIdx * NUM_FAR_PLANES) + idx];
 		projCoords = lightSpace.xyz / lightSpace.w;
 		projCoords = projCoords * 0.5 + 0.5;
 
@@ -78,6 +72,9 @@ float shadowCalculation(int lightIdx)
 	}
 	else
 	{
+		lightSpace = fIn.fragLightSpace[lightIdx * NUM_FAR_PLANES];
+		projCoords = lightSpace.xyz / lightSpace.w;
+		projCoords = projCoords * 0.5 + 0.5;
 		closestDepth = texture(shadowMapArr, vec3(projCoords.xy,lights.shadowIdx[lightIdx])).r;
 	}
 	float currentDepth = projCoords.z; 

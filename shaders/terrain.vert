@@ -55,7 +55,10 @@ void main()
 
 	vOut.modelView = view * model;
 
-	float zpos = ((projection * view * model) * vec4(position, 1.0)).z;// * farPlanes[NUM_FAR_PLANES - 1];
+	// calculates the z coordinate as a positive between 0 and 1
+	float zpos = (-(projection * view * model * vec4(position, 1.0)).z + 1.f) /2.f;
+	// calculates the z coordinate between 0 and the furthest far plane
+	zpos *= farPlanes[NUM_FAR_PLANES - 1];
 	if (abs(zpos) < farPlanes[0])
 	{
 		cascadingIdx = 0;

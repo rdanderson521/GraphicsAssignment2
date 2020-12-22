@@ -214,6 +214,7 @@ void init(GLWrapperV2* glw)
 
 	for (int i = 0; i < NUM_PROGRAMS; i++)
 	{
+		glUseProgram(programs[i]);
 		modelID[i] = glGetUniformLocation(programs[i], "model");
 
 		if (i != SHADOW_PROGRAM)
@@ -266,6 +267,7 @@ void init(GLWrapperV2* glw)
 		{
 			lightSpaceMatrixID[i] = glGetUniformLocation(programs[i], "lightSpaceMatrix");
 		}
+		glUseProgram(0);
 	}
 
 
@@ -591,20 +593,12 @@ void display()
 
 	glUseProgram(programs[TERRAIN_PROGRAM]);
 
-	for (int j = 0; j < NUM_FAR_PLANES; j++)
-	{
-		//std::string str = "farPlanes[" + std::to_string(j) + "]";
-		//farPlanesID[TERRAIN_PROGRAM][j] = glGetUniformLocation(programs[TERRAIN_PROGRAM], str.c_str());
-		glUniform1f(farPlanesID[TERRAIN_PROGRAM][j], std::pow(((float)(j + 1) / NUM_FAR_PLANES), 2.f) * (FAR_PLANE_DIST - 2.f) + 2.f);
-	}
 
 	glUniformMatrix4fv(viewID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderView[0][0]);
 	glUniformMatrix4fv(projectionID[TERRAIN_PROGRAM], 1, GL_FALSE, &renderProjection[0][0]);
 
-	// binds textures
+	// binds depth map array
 	glActiveTexture(GL_TEXTURE0 + numTerrainTextures*2);
-
-	// binds depth map
 	glBindTexture(GL_TEXTURE_2D_ARRAY, dirDepthMapArray);
 	glUniform1i(dirShadowMapArrayID[TERRAIN_PROGRAM], numTerrainTextures * 2);
 

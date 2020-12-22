@@ -24,9 +24,9 @@ out VERTEX_OUT
 	vec4 fragLightSpace[MAX_LIGHTS * NUM_FAR_PLANES];
 	vec2 texCoord;
 	mat4 modelView;
-	uint cascadingIdx;
 } vOut;
 
+flat out uint cascadingIdx;
 
 
 // These are the uniforms that are defined in the application
@@ -61,13 +61,22 @@ void main()
 
 	vOut.modelView =  view * model;
 
-	uint idx = 0;
-	float zpos = (view * vec4(vOut.pos,1.f)).z;
-	while ( idx < (NUM_FAR_PLANES - 1) && abs(zpos) > farPlanes[idx])
+	// calculates the z coordinate as a positive between 0 and 1
+	float zpos = (-(projection * view * model * vec4(position, 1.0)).z + 1.f) /2.f;
+	// calculates the z coordinate between 0 and the furthest far plane
+	zpos *= farPlanes[NUM_FAR_PLANES - 1];
+	if (abs(zpos) < farPlanes[0])
 	{
-		idx++;
+		cascadingIdx = 0;
 	}
-	vOut.cascadingIdx = idx;
+	else if (abs(zpos) < farPlanes[1])
+	{
+		cascadingIdx = 1;
+	}
+	else 
+	{
+		cascadingIdx = 2;
+	}
 
 	gl_Position = (projection * view * model) * vec4(position, 1.0);
 }
